@@ -1,0 +1,1166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+    <class>Dialog</class>
+    <widget class="QDialog" name="Dialog">
+        <property name="geometry">
+            <rect>
+                <x>0</x>
+                <y>0</y>
+                <width>700</width>
+                <height>650</height>
+            </rect>
+        </property>
+        <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+            </sizepolicy>
+        </property>
+        <property name="minimumSize">
+            <size>
+                <width>700</width>
+                <height>650</height>
+            </size>
+        </property>
+        <property name="maximumSize">
+            <size>
+                <width>700</width>
+                <height>650</height>
+            </size>
+        </property>
+        <property name="windowTitle">
+            <string>Specifications</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout">
+            <item row="0" column="0">
+                <widget class="QGroupBox" name="groupBox_12">
+                    <property name="sizePolicy">
+                        <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                        </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                        <size>
+                            <width>280</width>
+                            <height>0</height>
+                        </size>
+                    </property>
+                    <property name="maximumSize">
+                        <size>
+                            <width>280</width>
+                            <height>16777215</height>
+                        </size>
+                    </property>
+                    <property name="title">
+                        <string>Inputs</string>
+                    </property>
+                    <layout class="QGridLayout" name="gridLayout_11">
+                        <item row="24" column="0" colspan="3">
+                            <widget class="QWidget" name="widget" native="true">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <layout class="QGridLayout" name="gridLayout_2">
+                                    <item row="0" column="1">
+                                        <widget class="QPushButton" name="pushButton_import">
+                                            <property name="text">
+                                                <string>Import Pump</string>
+                                            </property>
+                                        </widget>
+                                    </item>
+                                    <item row="0" column="0">
+                                        <spacer name="horizontalSpacer">
+                                            <property name="orientation">
+                                                <enum>Qt::Horizontal</enum>
+                                            </property>
+                                            <property name="sizeHint" stdset="0">
+                                                <size>
+                                                    <width>40</width>
+                                                    <height>20</height>
+                                                </size>
+                                            </property>
+                                        </spacer>
+                                    </item>
+                                    <item row="0" column="2">
+                                        <widget class="QPushButton" name="pushButton_calculate">
+                                            <property name="text">
+                                                <string>Calculate Pump</string>
+                                            </property>
+                                        </widget>
+                                    </item>
+                                </layout>
+                            </widget>
+                        </item>
+                        <item row="0" column="1">
+                            <widget class="QLineEdit" name="lineEdit_revolution">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="0" column="2">
+                            <widget class="QLabel" name="label_79">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="minimumSize">
+                                    <size>
+                                        <width>0</width>
+                                        <height>0</height>
+                                    </size>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>100</width>
+                                        <height>16777215</height>
+                                    </size>
+                                </property>
+                                <property name="text">
+                                    <string>dev/dk</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="0" column="0">
+                            <widget class="QLabel" name="label_78">
+                                <property name="text">
+                                    <string>Dönme Hızı</string>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="11" column="1">
+                            <widget class="QLineEdit" name="lineEdit_inlet_angle">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="5" column="0">
+                            <widget class="QLabel" name="label_71">
+                                <property name="text">
+                                    <string>Çıkış Basıncı</string>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="1" column="1">
+                            <widget class="QLineEdit" name="lineEdit_mass_flow">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="5" column="1">
+                            <widget class="QLineEdit" name="lineEdit_outlet_pressure">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="20" column="1">
+                            <widget class="QComboBox" name="comboBox">
+                                <property name="enabled">
+                                    <bool>true</bool>
+                                </property>
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>133</width>
+                                        <height>16777215</height>
+                                    </size>
+                                </property>
+                                <item>
+                                    <property name="text">
+                                        <string>LOx - @90K</string>
+                                    </property>
+                                </item>
+                                <item>
+                                    <property name="text">
+                                        <string>Kullanıcı Tanımlı Oksitleyici</string>
+                                    </property>
+                                </item>
+                            </widget>
+                        </item>
+                        <item row="11" column="0">
+                            <widget class="QLabel" name="label_72">
+                                <property name="text">
+                                    <string>Giriş Açısı</string>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="1" column="0">
+                            <widget class="QLabel" name="label_61">
+                                <property name="text">
+                                    <string>Kütlesel Debi</string>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="16" column="0">
+                            <widget class="QLabel" name="label_76">
+                                <property name="text">
+                                    <string>Çıkış Çapı</string>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="10" column="0">
+                            <widget class="QLabel" name="label_69">
+                                <property name="text">
+                                    <string>Giriş Basıncı</string>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="12" column="1">
+                            <widget class="QCheckBox" name="checkBox_double_suction">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="text">
+                                    <string>Çift Emiş</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="7" column="1">
+                            <widget class="QCheckBox" name="checkBox_second_stage">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="text">
+                                    <string>İki Kademe</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="22" column="2">
+                            <widget class="QLabel" name="label_63">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="minimumSize">
+                                    <size>
+                                        <width>0</width>
+                                        <height>0</height>
+                                    </size>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>100</width>
+                                        <height>16777215</height>
+                                    </size>
+                                </property>
+                                <property name="text">
+                                    <string>Pa.s</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="5" column="2">
+                            <widget class="QLabel" name="label_59">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="minimumSize">
+                                    <size>
+                                        <width>0</width>
+                                        <height>0</height>
+                                    </size>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>100</width>
+                                        <height>16777215</height>
+                                    </size>
+                                </property>
+                                <property name="text">
+                                    <string>bar</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="18" column="0" colspan="3">
+                            <widget class="Line" name="line_3">
+                                <property name="orientation">
+                                    <enum>Qt::Horizontal</enum>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="15" column="1">
+                            <widget class="QLineEdit" name="lineEdit_inlet_diameter">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="22" column="0">
+                            <widget class="QLabel" name="label_67">
+                                <property name="text">
+                                    <string>Dinamik Viskozite</string>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="20" column="0">
+                            <widget class="QLabel" name="label_68">
+                                <property name="text">
+                                    <string>Akışkan</string>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="10" column="1">
+                            <widget class="QLineEdit" name="lineEdit_inlet_pressure">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="23" column="0">
+                            <widget class="QLabel" name="label_66">
+                                <property name="text">
+                                    <string>Buhar Basıncı</string>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="21" column="2">
+                            <widget class="QLabel" name="label_62">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="minimumSize">
+                                    <size>
+                                        <width>0</width>
+                                        <height>0</height>
+                                    </size>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>100</width>
+                                        <height>16777215</height>
+                                    </size>
+                                </property>
+                                <property name="text">
+                                    <string>kg/m3</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="11" column="2">
+                            <widget class="QLabel" name="label_73">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="minimumSize">
+                                    <size>
+                                        <width>0</width>
+                                        <height>0</height>
+                                    </size>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>100</width>
+                                        <height>16777215</height>
+                                    </size>
+                                </property>
+                                <property name="text">
+                                    <string>°</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="10" column="2">
+                            <widget class="QLabel" name="label_70">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="minimumSize">
+                                    <size>
+                                        <width>0</width>
+                                        <height>0</height>
+                                    </size>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>100</width>
+                                        <height>16777215</height>
+                                    </size>
+                                </property>
+                                <property name="text">
+                                    <string>bar</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="23" column="2">
+                            <widget class="QLabel" name="label_64">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="minimumSize">
+                                    <size>
+                                        <width>0</width>
+                                        <height>0</height>
+                                    </size>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>100</width>
+                                        <height>16777215</height>
+                                    </size>
+                                </property>
+                                <property name="text">
+                                    <string>bar</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="15" column="0">
+                            <widget class="QLabel" name="label_74">
+                                <property name="text">
+                                    <string>Giriş Çapı</string>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="16" column="1">
+                            <widget class="QLineEdit" name="lineEdit_outlet_diameter">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="15" column="2">
+                            <widget class="QLabel" name="label_75">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="minimumSize">
+                                    <size>
+                                        <width>0</width>
+                                        <height>0</height>
+                                    </size>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>100</width>
+                                        <height>16777215</height>
+                                    </size>
+                                </property>
+                                <property name="text">
+                                    <string>mm</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="22" column="1">
+                            <widget class="QLineEdit" name="lineEdit_dynamicViscosity">
+                                <property name="enabled">
+                                    <bool>true</bool>
+                                </property>
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="16" column="2">
+                            <widget class="QLabel" name="label_77">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="minimumSize">
+                                    <size>
+                                        <width>0</width>
+                                        <height>0</height>
+                                    </size>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>100</width>
+                                        <height>16777215</height>
+                                    </size>
+                                </property>
+                                <property name="text">
+                                    <string>mm</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="21" column="0">
+                            <widget class="QLabel" name="label_65">
+                                <property name="text">
+                                    <string>Yoğunluk</string>
+                                </property>
+                                <property name="alignment">
+                                    <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="23" column="1">
+                            <widget class="QLineEdit" name="lineEdit_vaporPressure">
+                                <property name="enabled">
+                                    <bool>true</bool>
+                                </property>
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="8" column="0" colspan="3">
+                            <widget class="Line" name="line_2">
+                                <property name="orientation">
+                                    <enum>Qt::Horizontal</enum>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="1" column="2">
+                            <widget class="QLabel" name="label_60">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="minimumSize">
+                                    <size>
+                                        <width>0</width>
+                                        <height>0</height>
+                                    </size>
+                                </property>
+                                <property name="maximumSize">
+                                    <size>
+                                        <width>100</width>
+                                        <height>16777215</height>
+                                    </size>
+                                </property>
+                                <property name="text">
+                                    <string>kg/s</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="14" column="0" colspan="3">
+                            <widget class="Line" name="line">
+                                <property name="orientation">
+                                    <enum>Qt::Horizontal</enum>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="21" column="1">
+                            <widget class="QLineEdit" name="lineEdit_density">
+                                <property name="enabled">
+                                    <bool>true</bool>
+                                </property>
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                            </widget>
+                        </item>
+                    </layout>
+                </widget>
+            </item>
+            <item row="0" column="1">
+                <widget class="QGroupBox" name="groupBox">
+                    <property name="sizePolicy">
+                        <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                        </sizepolicy>
+                    </property>
+                    <property name="title">
+                        <string>Info</string>
+                    </property>
+                    <layout class="QGridLayout" name="gridLayout_4">
+                        <item row="1" column="0">
+                            <widget class="QTableWidget" name="tableWidget">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="autoFillBackground">
+                                    <bool>false</bool>
+                                </property>
+                                <property name="styleSheet">
+                                    <string notr="true">background-color: transparent;</string>
+                                </property>
+                                <property name="inputMethodHints">
+                                    <set>Qt::ImhNone</set>
+                                </property>
+                                <property name="frameShape">
+                                    <enum>QFrame::NoFrame</enum>
+                                </property>
+                                <property name="frameShadow">
+                                    <enum>QFrame::Plain</enum>
+                                </property>
+                                <property name="lineWidth">
+                                    <number>1</number>
+                                </property>
+                                <property name="midLineWidth">
+                                    <number>1</number>
+                                </property>
+                                <property name="horizontalScrollBarPolicy">
+                                    <enum>Qt::ScrollBarAlwaysOff</enum>
+                                </property>
+                                <property name="sizeAdjustPolicy">
+                                    <enum>QAbstractScrollArea::AdjustToContentsOnFirstShow</enum>
+                                </property>
+                                <property name="editTriggers">
+                                    <set>QAbstractItemView::NoEditTriggers</set>
+                                </property>
+                                <property name="dragEnabled">
+                                    <bool>false</bool>
+                                </property>
+                                <property name="dragDropOverwriteMode">
+                                    <bool>false</bool>
+                                </property>
+                                <property name="selectionMode">
+                                    <enum>QAbstractItemView::NoSelection</enum>
+                                </property>
+                                <property name="showGrid">
+                                    <bool>false</bool>
+                                </property>
+                                <property name="gridStyle">
+                                    <enum>Qt::SolidLine</enum>
+                                </property>
+                                <property name="sortingEnabled">
+                                    <bool>false</bool>
+                                </property>
+                                <property name="wordWrap">
+                                    <bool>false</bool>
+                                </property>
+                                <property name="cornerButtonEnabled">
+                                    <bool>false</bool>
+                                </property>
+                                <attribute name="horizontalHeaderVisible">
+                                    <bool>false</bool>
+                                </attribute>
+                                <attribute name="horizontalHeaderCascadingSectionResizes">
+                                    <bool>false</bool>
+                                </attribute>
+                                <attribute name="horizontalHeaderHighlightSections">
+                                    <bool>false</bool>
+                                </attribute>
+                                <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+                                    <bool>false</bool>
+                                </attribute>
+                                <attribute name="horizontalHeaderStretchLastSection">
+                                    <bool>true</bool>
+                                </attribute>
+                                <attribute name="verticalHeaderVisible">
+                                    <bool>false</bool>
+                                </attribute>
+                                <attribute name="verticalHeaderCascadingSectionResizes">
+                                    <bool>false</bool>
+                                </attribute>
+                                <attribute name="verticalHeaderHighlightSections">
+                                    <bool>false</bool>
+                                </attribute>
+                                <attribute name="verticalHeaderStretchLastSection">
+                                    <bool>false</bool>
+                                </attribute>
+                                <row>
+                                    <property name="text">
+                                        <string>Parameter</string>
+                                    </property>
+                                </row>
+                                <row>
+                                    <property name="text">
+                                        <string>Revolutions</string>
+                                    </property>
+                                </row>
+                                <row>
+                                    <property name="text">
+                                        <string>Volume Flow</string>
+                                    </property>
+                                </row>
+                                <row>
+                                    <property name="text">
+                                        <string>Mass Flow</string>
+                                    </property>
+                                </row>
+                                <row>
+                                    <property name="text">
+                                        <string>Head</string>
+                                    </property>
+                                </row>
+                                <row>
+                                    <property name="text">
+                                        <string>Pressure Rise</string>
+                                    </property>
+                                </row>
+                                <row>
+                                    <property name="text">
+                                        <string>Specific Speed</string>
+                                    </property>
+                                </row>
+                                <row>
+                                    <property name="text">
+                                        <string>Shaft Power</string>
+                                    </property>
+                                </row>
+                                <row>
+                                    <property name="text">
+                                        <string>Hydraulic Efficiency</string>
+                                    </property>
+                                </row>
+                                <row>
+                                    <property name="text">
+                                        <string>Inlet Diameter</string>
+                                    </property>
+                                </row>
+                                <row>
+                                    <property name="text">
+                                        <string>Outlet Diameter</string>
+                                    </property>
+                                </row>
+                                <column>
+                                    <property name="text">
+                                        <string>Parameter</string>
+                                    </property>
+                                </column>
+                                <column>
+                                    <property name="text">
+                                        <string>Value</string>
+                                    </property>
+                                    <property name="font">
+                                        <font>
+                                            <kerning>true</kerning>
+                                        </font>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignTrailing|AlignVCenter</set>
+                                    </property>
+                                </column>
+                                <column>
+                                    <property name="text">
+                                        <string>Unit</string>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignLeading|AlignVCenter</set>
+                                    </property>
+                                </column>
+                                <item row="0" column="0">
+                                    <property name="text">
+                                        <string>Parameter</string>
+                                    </property>
+                                    <property name="font">
+                                        <font>
+                                            <weight>75</weight>
+                                            <bold>true</bold>
+                                        </font>
+                                    </property>
+                                </item>
+                                <item row="0" column="1">
+                                    <property name="text">
+                                        <string>Value</string>
+                                    </property>
+                                    <property name="font">
+                                        <font>
+                                            <weight>75</weight>
+                                            <bold>true</bold>
+                                        </font>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignTrailing|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="0" column="2">
+                                    <property name="text">
+                                        <string>Unit</string>
+                                    </property>
+                                    <property name="font">
+                                        <font>
+                                            <weight>75</weight>
+                                            <bold>true</bold>
+                                        </font>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignLeading|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="1" column="0">
+                                    <property name="text">
+                                        <string>Revolutions</string>
+                                    </property>
+                                </item>
+                                <item row="1" column="1">
+                                    <property name="text">
+                                        <string/>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignTrailing|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="1" column="2">
+                                    <property name="text">
+                                        <string>rpm</string>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignLeading|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="2" column="0">
+                                    <property name="text">
+                                        <string>Volume Flow</string>
+                                    </property>
+                                </item>
+                                <item row="2" column="1">
+                                    <property name="text">
+                                        <string/>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignTrailing|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="2" column="2">
+                                    <property name="text">
+                                        <string>m3/s</string>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignLeading|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="3" column="0">
+                                    <property name="text">
+                                        <string>Mass Flow</string>
+                                    </property>
+                                </item>
+                                <item row="3" column="1">
+                                    <property name="text">
+                                        <string/>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignTrailing|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="3" column="2">
+                                    <property name="text">
+                                        <string>kg/s</string>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignLeading|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="4" column="0">
+                                    <property name="text">
+                                        <string>Head</string>
+                                    </property>
+                                </item>
+                                <item row="4" column="1">
+                                    <property name="text">
+                                        <string/>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignTrailing|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="4" column="2">
+                                    <property name="text">
+                                        <string>m</string>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignLeading|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="5" column="0">
+                                    <property name="text">
+                                        <string>Pressure Rise</string>
+                                    </property>
+                                </item>
+                                <item row="5" column="1">
+                                    <property name="text">
+                                        <string/>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignTrailing|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="5" column="2">
+                                    <property name="text">
+                                        <string>bar</string>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignLeading|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="6" column="0">
+                                    <property name="text">
+                                        <string>Specific Speed</string>
+                                    </property>
+                                </item>
+                                <item row="6" column="1">
+                                    <property name="text">
+                                        <string/>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignTrailing|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="6" column="2">
+                                    <property name="text">
+                                        <string>-</string>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignLeading|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="7" column="0">
+                                    <property name="text">
+                                        <string>Shaft Power</string>
+                                    </property>
+                                </item>
+                                <item row="7" column="1">
+                                    <property name="text">
+                                        <string/>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignTrailing|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="7" column="2">
+                                    <property name="text">
+                                        <string>kW</string>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignLeading|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="8" column="0">
+                                    <property name="text">
+                                        <string>Hydraulic Efficiency</string>
+                                    </property>
+                                </item>
+                                <item row="8" column="1">
+                                    <property name="text">
+                                        <string/>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignTrailing|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="8" column="2">
+                                    <property name="text">
+                                        <string>-</string>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignLeading|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="9" column="0">
+                                    <property name="text">
+                                        <string>Inlet Radius</string>
+                                    </property>
+                                </item>
+                                <item row="9" column="1">
+                                    <property name="text">
+                                        <string/>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignTrailing|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="9" column="2">
+                                    <property name="text">
+                                        <string>mm</string>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignLeading|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="10" column="0">
+                                    <property name="text">
+                                        <string>Outlet Radius</string>
+                                    </property>
+                                </item>
+                                <item row="10" column="1">
+                                    <property name="text">
+                                        <string/>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignTrailing|AlignVCenter</set>
+                                    </property>
+                                </item>
+                                <item row="10" column="2">
+                                    <property name="text">
+                                        <string>mm</string>
+                                    </property>
+                                    <property name="textAlignment">
+                                        <set>AlignLeading|AlignVCenter</set>
+                                    </property>
+                                </item>
+                            </widget>
+                        </item>
+                        <item row="0" column="0">
+                            <widget class="QWidget" name="widget_dummy" native="true">
+                                <property name="minimumSize">
+                                    <size>
+                                        <width>0</width>
+                                        <height>250</height>
+                                    </size>
+                                </property>
+                            </widget>
+                        </item>
+                    </layout>
+                </widget>
+            </item>
+            <item row="1" column="0" colspan="2">
+                <widget class="QDialogButtonBox" name="buttonBox">
+                    <property name="sizePolicy">
+                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                        </sizepolicy>
+                    </property>
+                    <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="standardButtons">
+                        <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+                    </property>
+                </widget>
+            </item>
+        </layout>
+    </widget>
+    <resources/>
+    <connections>
+        <connection>
+            <sender>buttonBox</sender>
+            <signal>rejected()</signal>
+            <receiver>Dialog</receiver>
+            <slot>reject()</slot>
+            <hints>
+                <hint type="sourcelabel">
+                    <x>316</x>
+                    <y>260</y>
+                </hint>
+                <hint type="destinationlabel">
+                    <x>286</x>
+                    <y>274</y>
+                </hint>
+            </hints>
+        </connection>
+        <connection>
+            <sender>buttonBox</sender>
+            <signal>accepted()</signal>
+            <receiver>Dialog</receiver>
+            <slot>accept()</slot>
+            <hints>
+                <hint type="sourcelabel">
+                    <x>248</x>
+                    <y>254</y>
+                </hint>
+                <hint type="destinationlabel">
+                    <x>157</x>
+                    <y>274</y>
+                </hint>
+            </hints>
+        </connection>
+    </connections>
+</ui>

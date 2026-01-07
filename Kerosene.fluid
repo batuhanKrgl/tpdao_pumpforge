@@ -1,0 +1,7 @@
+{
+    "name": "kerosene",
+    "type": "fuel",
+    "density": 803,
+    "vaporPressure": 17.656e3,
+    "dynamicViscosity": 1.59476e-3
+}

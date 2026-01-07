@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+    <class>MainWindow</class>
+    <widget class="QMainWindow" name="MainWindow">
+        <property name="geometry">
+            <rect>
+                <x>0</x>
+                <y>0</y>
+                <width>1558</width>
+                <height>942</height>
+            </rect>
+        </property>
+        <property name="windowTitle">
+            <string>MainWindow</string>
+        </property>
+        <widget class="QWidget" name="centralwidget">
+            <layout class="QGridLayout" name="gridLayout_2">
+                <item row="7" column="1">
+                    <spacer name="verticalSpacer">
+                        <property name="orientation">
+                            <enum>Qt::Vertical</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                            <size>
+                                <width>20</width>
+                                <height>40</height>
+                            </size>
+                        </property>
+                    </spacer>
+                </item>
+                <item row="2" column="1">
+                    <widget class="QPushButton" name="pushButton_inducer">
+                        <property name="enabled">
+                            <bool>true</bool>
+                        </property>
+                        <property name="minimumSize">
+                            <size>
+                                <width>100</width>
+                                <height>100</height>
+                            </size>
+                        </property>
+                        <property name="text">
+                            <string>Inducer</string>
+                        </property>
+                        <property name="flat">
+                            <bool>false</bool>
+                        </property>
+                    </widget>
+                </item>
+                <item row="5" column="1">
+                    <widget class="QPushButton" name="pushButton_impeller2">
+                        <property name="enabled">
+                            <bool>true</bool>
+                        </property>
+                        <property name="minimumSize">
+                            <size>
+                                <width>100</width>
+                                <height>100</height>
+                            </size>
+                        </property>
+                        <property name="text">
+                            <string>Impeller 2</string>
+                        </property>
+                        <property name="flat">
+                            <bool>false</bool>
+                        </property>
+                    </widget>
+                </item>
+                <item row="4" column="1">
+                    <widget class="QPushButton" name="pushButton_diffuser">
+                        <property name="enabled">
+                            <bool>true</bool>
+                        </property>
+                        <property name="minimumSize">
+                            <size>
+                                <width>100</width>
+                                <height>100</height>
+                            </size>
+                        </property>
+                        <property name="text">
+                            <string>Diffuser</string>
+                        </property>
+                        <property name="flat">
+                            <bool>false</bool>
+                        </property>
+                    </widget>
+                </item>
+                <item row="1" column="1">
+                    <widget class="QPushButton" name="pushButton_create">
+                        <property name="sizePolicy">
+                            <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+                                <horstretch>0</horstretch>
+                                <verstretch>0</verstretch>
+                            </sizepolicy>
+                        </property>
+                        <property name="minimumSize">
+                            <size>
+                                <width>100</width>
+                                <height>100</height>
+                            </size>
+                        </property>
+                        <property name="text">
+                            <string>Create Pump</string>
+                        </property>
+                    </widget>
+                </item>
+                <item row="3" column="1">
+                    <widget class="QPushButton" name="pushButton_impeller">
+                        <property name="enabled">
+                            <bool>true</bool>
+                        </property>
+                        <property name="minimumSize">
+                            <size>
+                                <width>100</width>
+                                <height>100</height>
+                            </size>
+                        </property>
+                        <property name="text">
+                            <string>Impeller</string>
+                        </property>
+                        <property name="flat">
+                            <bool>false</bool>
+                        </property>
+                    </widget>
+                </item>
+                <item row="6" column="1">
+                    <widget class="QPushButton" name="pushButton_volute">
+                        <property name="enabled">
+                            <bool>true</bool>
+                        </property>
+                        <property name="minimumSize">
+                            <size>
+                                <width>100</width>
+                                <height>100</height>
+                            </size>
+                        </property>
+                        <property name="text">
+                            <string>Volute</string>
+                        </property>
+                        <property name="flat">
+                            <bool>false</bool>
+                        </property>
+                    </widget>
+                </item>
+                <item row="0" column="1">
+                    <spacer name="verticalSpacer_2">
+                        <property name="orientation">
+                            <enum>Qt::Vertical</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                            <size>
+                                <width>20</width>
+                                <height>40</height>
+                            </size>
+                        </property>
+                    </spacer>
+                </item>
+                <item row="0" column="2" rowspan="8">
+                    <widget class="QTabWidget" name="tabWidget">
+                        <property name="sizePolicy">
+                            <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+                                <horstretch>0</horstretch>
+                                <verstretch>0</verstretch>
+                            </sizepolicy>
+                        </property>
+                        <property name="tabShape">
+                            <enum>QTabWidget::Rounded</enum>
+                        </property>
+                        <property name="currentIndex">
+                            <number>1</number>
+                        </property>
+                        <property name="movable">
+                            <bool>false</bool>
+                        </property>
+                        <property name="tabBarAutoHide">
+                            <bool>false</bool>
+                        </property>
+                        <widget class="QWidget" name="tab_layout">
+                            <attribute name="title">
+                                <string>Layout</string>
+                            </attribute>
+                            <layout class="QGridLayout" name="layout_layout"/>
+                        </widget>
+                        <widget class="QWidget" name="tab_3d">
+                            <attribute name="title">
+                                <string>3D</string>
+                            </attribute>
+                            <layout class="QGridLayout" name="tab_3d_layout"/>
+                        </widget>
+                    </widget>
+                </item>
+                <item row="3" column="0">
+                    <spacer name="horizontalSpacer">
+                        <property name="orientation">
+                            <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeType">
+                            <enum>QSizePolicy::Maximum</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                            <size>
+                                <width>2</width>
+                                <height>5</height>
+                            </size>
+                        </property>
+                    </spacer>
+                </item>
+            </layout>
+        </widget>
+        <widget class="QMenuBar" name="menubar">
+            <property name="geometry">
+                <rect>
+                    <x>0</x>
+                    <y>0</y>
+                    <width>1558</width>
+                    <height>21</height>
+                </rect>
+            </property>
+            <widget class="QMenu" name="menuFile">
+                <property name="title">
+                    <string>File</string>
+                </property>
+                <addaction name="action_open_object"/>
+                <addaction name="action_open_json"/>
+                <addaction name="action_save_object"/>
+                <addaction name="action_save_json"/>
+            </widget>
+            <addaction name="menuFile"/>
+        </widget>
+        <widget class="QStatusBar" name="statusbar"/>
+        <action name="action_save_object">
+            <property name="text">
+                <string>Save As Object</string>
+            </property>
+        </action>
+        <action name="action_save_json">
+            <property name="text">
+                <string>Save As JSON File</string>
+            </property>
+        </action>
+        <action name="action_open_object">
+            <property name="text">
+                <string>Open Object</string>
+            </property>
+        </action>
+        <action name="action_open_json">
+            <property name="text">
+                <string>Open JSON File</string>
+            </property>
+        </action>
+    </widget>
+    <resources/>
+    <connections/>
+</ui>
