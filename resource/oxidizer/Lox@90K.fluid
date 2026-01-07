@@ -1,0 +1,7 @@
+{
+    "name": "Lox@90K",
+    "type": "oxidizer",
+    "density": 1142.1,
+    "vaporPressure": 99350,
+    "dynamicViscosity": 0.00019564
+}
