@@ -633,8 +633,8 @@ class PotaSetupDialog(QDialog):
     def import_pump(self):
         # import bypass için aşağıdaki iki satırı yorumdan çıkar/ yoruma ekle.
         file_path = "C:\\Users\\batuhan.koroglu\\Desktop\\TPDAO\\apps\\TuKTA\\test-save\\250kN_70bar-20240813-073438\\250kN_70bar-20240813-073438-21000rpm-oxidizer.pump"
-        # file_path, _ = QFileDialog.getOpenFileName(parent=self, caption="Select Pump File", directory="./",
-        #                                            filter="Pump 1D File (*.pump)")
+        file_path, _ = QFileDialog.getOpenFileName(parent=self, caption="Select Pump File", directory="./",
+                                                   filter="Pump 1D File (*.pump)")
         if file_path:
             with open(file_path, "rb") as file:
                 pump = pickle.load(file)
@@ -957,9 +957,9 @@ class ImpellerDialog(QDialog):
             self.gridLayout_upper_3.addWidget(self.viewer_trailing_edges)
 
         self.hub_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="-", label='Hub')
-        self.hub_node_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="-o", linewidth=0.5, ms=3)
+        self.hub_node_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="dashed", linewidth=0.5, ms=3)
         self.tip_line = Line2D(xdata=[], ydata=[], color='green', linestyle="-", label='Tip')
-        self.tip_node_line = Line2D(xdata=[], ydata=[], color='green', linestyle="-o", linewidth=0.5, ms=3)
+        self.tip_node_line = Line2D(xdata=[], ydata=[], color='green', linestyle="dashed", linewidth=0.5, ms=3)
         self.leading_line = Line2D(xdata=[], ydata=[], color='red', linestyle="-", label='Leading Edge')
         self.leading_node_line = Line2D(xdata=[], ydata=[], color='red', linestyle="-", linewidth=0.5, ms=3)
         self.trailing_line = Line2D(xdata=[], ydata=[], color='black', linestyle="-", label='Trailing Edge')
@@ -977,8 +977,8 @@ class ImpellerDialog(QDialog):
         self.viewer_meridional.ax.add_line(self.leading_node_line)
         self.viewer_meridional.ax.add_line(self.trailing_line)
 
-        self.beta_inlet_nodes = Line2D(xdata=[], ydata=[], color='green', linestyle="-o", linewidth=0.5, ms=3)
-        self.beta_outlet_nodes = Line2D(xdata=[], ydata=[], color='blue', linestyle="-o", linewidth=0.5, ms=3)
+        self.beta_inlet_nodes = Line2D(xdata=[], ydata=[], color='green', linestyle="dashed", linewidth=0.5, ms=3)
+        self.beta_outlet_nodes = Line2D(xdata=[], ydata=[], color='blue', linestyle="dashed", linewidth=0.5, ms=3)
         self.viewer_beta.ax.add_line(self.beta_inlet_nodes)
         self.viewer_beta.ax.add_line(self.beta_outlet_nodes)
 
@@ -995,10 +995,10 @@ class ImpellerDialog(QDialog):
             self.beta_lines.append(Line2D(xdata=[], ydata=[], color=color, linestyle=linestyle))
             self.viewer_beta.ax.add_line(self.beta_lines[-1])
 
-        self.hub_pressure_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="-o", ms=2)
-        self.hub_suction_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="-o", ms=2)
-        self.tip_pressure_line = Line2D(xdata=[], ydata=[], color='green', linestyle="-o", ms=2)
-        self.tip_suction_line = Line2D(xdata=[], ydata=[], color='green', linestyle="-o", ms=2)
+        self.hub_pressure_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="dashed", ms=2)
+        self.hub_suction_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="dashed", ms=2)
+        self.tip_pressure_line = Line2D(xdata=[], ydata=[], color='green', linestyle="dashed", ms=2)
+        self.tip_suction_line = Line2D(xdata=[], ydata=[], color='green', linestyle="dashed", ms=2)
         self.viewer_thickness.ax.add_line(self.hub_pressure_line)
         self.viewer_thickness.ax.add_line(self.hub_suction_line)
         self.viewer_thickness.ax.add_line(self.tip_pressure_line)
@@ -1265,6 +1265,7 @@ class ImpellerDialog(QDialog):
 
         for i, beta_line in enumerate(self.beta_lines):
             beta_line.set_ydata(self.rotor3D.beta_dict["array"][i] * 180 / np.pi)
+            beta_line.set_xdata(np.linspace(0,1,len(self.rotor3D.beta_dict["array"][i])))
         self.viewer_beta.ax.relim()
         self.viewer_beta.ax.autoscale_view()
         self.viewer_beta.update_plot()
