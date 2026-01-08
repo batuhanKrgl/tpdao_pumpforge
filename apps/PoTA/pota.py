@@ -13,7 +13,7 @@ from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QApplication, QMessageBox, QWidget, QHeaderView, QDoubleSpinBox, \
-    QPushButton, QAbstractItemView, QMainWindow, QFileDialog, QLineEdit, QTableWidgetItem, QRadioButton
+    QPushButton, QAbstractItemView, QMainWindow, QFileDialog, QLineEdit, QTableWidgetItem, QRadioButton, QSizePolicy
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -115,23 +115,36 @@ class PointCloudGeometry:
 
 
 class PointCloudLine:
-    def __init__(self, points=None, opacity=1, color=(1, 0, 0)):
+    def __init__(self, points=None, opacity=1, color=(1, 0, 0), tube_radius=0.0002):
         self.line = None
         self.opacity = opacity
         self.color = color
+        self.tube_radius = tube_radius
         self.points = points
         self.first_time = True
 
     def set_opacity(self, opacity):
         self.line.actor.property.opacity = opacity
 
+    def safe_set_opacity(self, opacity):
+        self.opacity = opacity
+        if self.line is not None:
+            self.line.actor.property.opacity = opacity
+
+    def set_color(self, color):
+        self.color = color
+        if self.line is not None:
+            self.line.actor.property.color = color
+
     def plot_line(self):
         x, y, z = self.points[:, 0], self.points[:, 1], self.points[:, 2]
-        self.line = mlab.plot3d(x, y, z, opacity=self.opacity, color=self.color, tube_radius=0.0002)
+        self.line = mlab.plot3d(x, y, z, opacity=self.opacity, color=self.color, tube_radius=self.tube_radius)
         self.first_time = False
 
     def update_line(self):
         x, y, z = self.points[:, 0], self.points[:, 1], self.points[:, 2]
+        self.line.actor.property.opacity = self.opacity
+        self.line.actor.property.color = self.color
         self.line.mlab_source.set(x=x, y=y, z=z)
 
 
@@ -301,12 +314,13 @@ class Polygon:
 
 
 class GeometryPlot(QWidget):
-    def __init__(self, parent=None, got_axline=True, rz=True):
+    def __init__(self, parent=None, got_axline=True, rz=True, aspect_mode="equal"):
         super(GeometryPlot, self).__init__(parent)
         self.figure = Figure()
         # self.figure.tight_layout(pad=1, rect=[-0.5,-0.5,1.5,1.5])
         self.figure.patch.set_alpha(0)
         self.canvas = FigureCanvas(self.figure)
+        self.canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.canvas.setStyleSheet("background:transparent;")
         self.canvas.setAttribute(Qt.WA_TranslucentBackground, True)
         layout = QVBoxLayout(self)
@@ -328,7 +342,11 @@ class GeometryPlot(QWidget):
             # self.ax.axline((0, 0), (1, 0), linestyle="--")
             # self.ax.axline((0, 0), (0, 1), linestyle="--")
         self.ax.grid(linestyle='--', linewidth=0.5)
-        self.ax.set_aspect('equal', "datalim")
+        self.aspect_mode = aspect_mode
+        if self.aspect_mode == "equal":
+            self.ax.set_aspect('equal', "datalim")
+        elif self.aspect_mode == "auto":
+            self.ax.set_aspect('auto')
         self.lines = []
 
     def update_plot(self):
@@ -733,6 +751,18 @@ class PotaSetupDialog(QDialog):
 
 
 class ImpellerDialog(QDialog):
+    DEBUG_LAYOUTS = False
+    THEME_3D = {
+        "camber_hi": {"color": (1.0, 0.3, 0.0), "opacity": 1.0},
+        "circles": {"color": (0.4, 0.4, 0.4), "opacity": 0.6},
+        "pressure": {"color": (0.2, 0.5, 1.0), "opacity": 1.0},
+        "suction": {"color": (0.2, 1.0, 0.4), "opacity": 1.0},
+        "leading": {"color": (1.0, 0.0, 0.0), "opacity": 1.0},
+        "trailing": {"color": (0.0, 0.0, 0.0), "opacity": 1.0},
+        "meridional": {"color": (0.5, 0.5, 0.5), "opacity": 0.25},
+        "normal": {"opacity": 0.25},
+        "hidden": {"opacity": 0.0},
+    }
     UI_NAME_MAP = {
         "toolBox": ["toolBox"],
         "page_meridional": ["page_meridional", "page_meridional_inputs"],
@@ -743,6 +773,8 @@ class ImpellerDialog(QDialog):
         "gridLayout_upper_3": ["gridLayout_upper_3", "gridLayout_lower_3", "gridLayout_upper_trailing"],
         "gridLayout_3d": ["gridLayout_3d"],
         "stackedWidget": ["stackedWidget", "stackedWidget_lower", "stackedWidget_upper"],
+        "stackedWidget_upper": ["stackedWidget_upper"],
+        "stackedWidget_lower": ["stackedWidget_lower"],
         "stackedWidget_leading": ["stackedWidget_leading"],
         "stackedWidget_trailing": ["stackedWidget_trailing"],
         "tableWidget_beta": ["tableWidget_beta"],
@@ -767,6 +799,8 @@ class ImpellerDialog(QDialog):
         self._init_plots()
         self._init_3d()
         self._refresh_all()
+        if self.toolBox is not None:
+            self.switch_page(self.toolBox.currentIndex())
 
     def _init_model_refs(self, imp1D, ind1D):
         self.sender_name = ""
@@ -808,6 +842,8 @@ class ImpellerDialog(QDialog):
         self.gridLayout_upper_3 = self._resolve_layout("gridLayout_upper_3")
         self.gridLayout_3d = self._resolve_layout("gridLayout_3d")
         self.stackedWidget = self._resolve_widget("stackedWidget")
+        self.stackedWidget_upper = self._resolve_widget("stackedWidget_upper")
+        self.stackedWidget_lower = self._resolve_widget("stackedWidget_lower")
         self.stackedWidget_leading = self._resolve_widget("stackedWidget_leading")
         self.stackedWidget_trailing = self._resolve_widget("stackedWidget_trailing")
         self.tableWidget_beta = self._resolve_widget("tableWidget_beta")
@@ -928,7 +964,7 @@ class ImpellerDialog(QDialog):
             self.update_table_view()
 
         if self.toolBox is not None:
-            self.toolBox.currentChanged.connect(self.switch_plots)
+            self.toolBox.currentChanged.connect(self.switch_page)
 
         if self.pushButton_ok is not None:
             self.pushButton_ok.clicked.connect(self.accept)
@@ -936,25 +972,40 @@ class ImpellerDialog(QDialog):
             self.pushButton_cancel.clicked.connect(self.reject)
 
     def _init_plots(self):
-        self.viewer_meridional = GeometryPlot(self, got_axline=False)
-        if self.gridLayout_upper_1 is not None:
-            self.gridLayout_upper_1.addWidget(self.viewer_meridional)
+        required_layouts = {
+            "gridLayout_upper_1": self.gridLayout_upper_1,
+            "gridLayout_upper_2": self.gridLayout_upper_2,
+            "gridLayout_lower_1": self.gridLayout_lower_1,
+            "gridLayout_lower_2": self.gridLayout_lower_2,
+        }
+        missing = [name for name, layout in required_layouts.items() if layout is None]
+        if missing:
+            raise RuntimeError(f"ImpellerDialog missing required plot layouts: {', '.join(missing)}")
 
-        self.viewer_beta = GeometryPlot(self, rz=False)
-        if self.gridLayout_lower_1 is not None:
-            self.gridLayout_lower_1.addWidget(self.viewer_beta)
+        self.viewer_meridional = GeometryPlot(self, got_axline=False, aspect_mode="equal")
+        self.gridLayout_lower_1.addWidget(self.viewer_meridional)
+
+        self.viewer_beta = GeometryPlot(self, rz=False, aspect_mode="auto")
+        self.gridLayout_upper_1.addWidget(self.viewer_beta)
 
         self.viewer_thickness = GeometryPlot(self, rz=False)
-        if self.gridLayout_upper_2 is not None:
-            self.gridLayout_upper_2.addWidget(self.viewer_thickness)
+        self.gridLayout_upper_2.addWidget(self.viewer_thickness)
 
         self.viewer_leading_edges = GeometryPlot(self, rz=False)
-        if self.gridLayout_lower_2 is not None:
-            self.gridLayout_lower_2.addWidget(self.viewer_leading_edges)
+        self.gridLayout_lower_2.addWidget(self.viewer_leading_edges)
 
         self.viewer_trailing_edges = GeometryPlot(self, rz=False)
-        if self.gridLayout_upper_3 is not None:
+        if self.gridLayout_upper_2 is not None:
+            self.gridLayout_upper_2.addWidget(self.viewer_trailing_edges)
+        elif self.gridLayout_upper_3 is not None:
             self.gridLayout_upper_3.addWidget(self.viewer_trailing_edges)
+
+        if self.DEBUG_LAYOUTS:
+            self._debug_viewer_parent("viewer_meridional", self.viewer_meridional)
+            self._debug_viewer_parent("viewer_beta", self.viewer_beta)
+            self._debug_viewer_parent("viewer_thickness", self.viewer_thickness)
+            self._debug_viewer_parent("viewer_leading_edges", self.viewer_leading_edges)
+            self._debug_viewer_parent("viewer_trailing_edges", self.viewer_trailing_edges)
 
         self.hub_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="-", label='Hub')
         self.hub_node_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="dashed", linewidth=0.5, ms=3)
@@ -1045,10 +1096,14 @@ class ImpellerDialog(QDialog):
             self.viewer_3D.add_line(self.blade_tip)
 
         self.blade_lines = []
+        self.blade_highlight_lines = []
         for blade_line in self.rotor3D.guides_dict["blade_guides"]:
             self.blade_lines.append(PointCloudLine(blade_line))
+            self.blade_highlight_lines.append(
+                PointCloudLine(blade_line, tube_radius=0.00035, color=self.THEME_3D["camber_hi"]["color"]))
             if self.viewer_3D is not None:
                 self.viewer_3D.add_line(self.blade_lines[-1])
+                self.viewer_3D.add_line(self.blade_highlight_lines[-1])
 
         self.impeller_hub_exit = PointCloudLine(self._circle_points(self.rotor3D.hub.r[-1], self.rotor3D.hub.z[-1]))
         self.impeller_hub_inlet = PointCloudLine(self._circle_points(self.rotor3D.hub.r[0], self.rotor3D.hub.z[0]))
@@ -1086,6 +1141,22 @@ class ImpellerDialog(QDialog):
                 if self.viewer_3D is not None:
                     self.viewer_3D.add_line(self.trailing_lines[-1])
 
+        self.layers_3d = {
+            "circles": [
+                self.impeller_hub_exit,
+                self.impeller_hub_inlet,
+                self.impeller_tip_exit,
+                self.impeller_tip_inlet,
+            ],
+            "camber": self.blade_lines,
+            "camber_hi": self.blade_highlight_lines,
+            "pressure": self.pressure_lines,
+            "suction": self.suction_lines,
+            "leading": self.leading_lines,
+            "trailing": self.trailing_lines,
+            "meridional": [self.hub_merid, self.tip_merid, self.blade_hub, self.blade_tip],
+        }
+
     def _refresh_all(self):
         self.rotor3D.set_meridional_geometry()
         self.rotor3D.set_beta_array()
@@ -1105,8 +1176,162 @@ class ImpellerDialog(QDialog):
         return np.column_stack([
             radius * np.cos(circle),
             radius * np.sin(circle),
-            np.full_like(circle, z_value)
+            z_value * np.ones_like(circle)
         ])
+
+    def _debug_viewer_parent(self, name, viewer):
+        if viewer is None:
+            print(f"ImpellerDialog layout debug: {name} is None")
+            return
+        chain = []
+        current = viewer
+        while current is not None:
+            if hasattr(current, "objectName"):
+                chain.append(current.objectName() or current.__class__.__name__)
+            else:
+                chain.append(current.__class__.__name__)
+            current = current.parent()
+        print(f"ImpellerDialog layout debug: {name} parent chain: {' -> '.join(chain)}")
+
+    def _set_line_visibility(self, line, visible):
+        line.safe_set_opacity(1.0 if visible else 0.0)
+
+    def _set_layer_style(self, name, color=None, opacity=None):
+        for line in self.layers_3d.get(name, []):
+            if color is not None:
+                line.set_color(color)
+            if opacity is not None:
+                line.safe_set_opacity(opacity)
+
+    def _set_layer_visible(self, name, visible, opacity=None):
+        target_opacity = opacity if opacity is not None else self.THEME_3D["normal"]["opacity"]
+        for line in self.layers_3d.get(name, []):
+            line.safe_set_opacity(target_opacity if visible else self.THEME_3D["hidden"]["opacity"])
+
+    def _hide_all_layers(self):
+        for layer_name in self.layers_3d:
+            self._set_layer_visible(layer_name, False)
+
+    def _page_key_for_index(self, index):
+        if self.toolBox is None:
+            return index
+        page = self.toolBox.widget(index)
+        page_name = page.objectName().lower() if page is not None else ""
+        page_title = self.toolBox.itemText(index).lower()
+        if "meridional" in page_name or "meridional" in page_title:
+            return "meridional"
+        if "beta" in page_name or "beta" in page_title:
+            return "beta"
+        if "thickness" in page_name or "thickness" in page_title:
+            return "thickness"
+        if "edge" in page_name or "edge" in page_title or "leading" in page_name or "trailing" in page_name:
+            return "edges"
+        return ["meridional", "beta", "thickness", "edges"][index] if index in range(4) else index
+
+    def _apply_2d_visibility(self, page_key):
+        viewers = {
+            "meridional": self.viewer_meridional,
+            "beta": self.viewer_beta,
+            "thickness": self.viewer_thickness,
+            "leading": self.viewer_leading_edges,
+            "trailing": self.viewer_trailing_edges,
+        }
+        for viewer in viewers.values():
+            if viewer is not None:
+                viewer.setVisible(False)
+        if page_key == "meridional":
+            if self.viewer_meridional is not None:
+                self.viewer_meridional.setVisible(True)
+        elif page_key == "beta":
+            if self.viewer_meridional is not None:
+                self.viewer_meridional.setVisible(True)
+            if self.viewer_beta is not None:
+                self.viewer_beta.setVisible(True)
+        elif page_key == "thickness":
+            if self.viewer_meridional is not None:
+                self.viewer_meridional.setVisible(True)
+            if self.viewer_thickness is not None:
+                self.viewer_thickness.setVisible(True)
+        elif page_key == "edges":
+            if self.viewer_leading_edges is not None:
+                self.viewer_leading_edges.setVisible(True)
+            if self.viewer_trailing_edges is not None:
+                self.viewer_trailing_edges.setVisible(True)
+
+    def _apply_stack_indexes(self, page_key):
+        if self.stackedWidget_upper is not None:
+            if page_key == "beta":
+                self.stackedWidget_upper.setCurrentIndex(0)
+            elif page_key in ["thickness", "edges"]:
+                self.stackedWidget_upper.setCurrentIndex(1)
+            else:
+                self.stackedWidget_upper.setCurrentIndex(0)
+        if self.stackedWidget_lower is not None:
+            if page_key == "edges":
+                self.stackedWidget_lower.setCurrentIndex(2)
+            elif page_key in ["meridional", "beta", "thickness"]:
+                self.stackedWidget_lower.setCurrentIndex(1)
+            else:
+                self.stackedWidget_lower.setCurrentIndex(0)
+
+    def _apply_view_mode(self, page_key):
+        self._hide_all_layers()
+        self._set_layer_style("meridional", **self.THEME_3D["meridional"])
+
+        if page_key == "beta":
+            self._set_layer_style("circles", **self.THEME_3D["circles"])
+            self._set_layer_visible("circles", True, self.THEME_3D["circles"]["opacity"])
+            self._set_layer_visible("meridional", True, self.THEME_3D["meridional"]["opacity"])
+            self._set_layer_visible("camber", True, self.THEME_3D["normal"]["opacity"])
+            self._set_layer_style("camber_hi", **self.THEME_3D["camber_hi"])
+            self._set_layer_visible("camber_hi", True, self.THEME_3D["camber_hi"]["opacity"])
+        elif page_key == "thickness":
+            self._set_layer_style("pressure", **self.THEME_3D["pressure"])
+            self._set_layer_style("suction", **self.THEME_3D["suction"])
+            self._set_layer_visible("pressure", True, self.THEME_3D["pressure"]["opacity"])
+            self._set_layer_visible("suction", True, self.THEME_3D["suction"]["opacity"])
+            self._set_layer_visible("circles", True, self.THEME_3D["normal"]["opacity"])
+            self._set_layer_visible("meridional", True, self.THEME_3D["meridional"]["opacity"])
+        elif page_key == "edges":
+            self._set_layer_style("leading", **self.THEME_3D["leading"])
+            self._set_layer_style("trailing", **self.THEME_3D["trailing"])
+            self._set_layer_visible("leading", True, self.THEME_3D["leading"]["opacity"])
+            self._set_layer_visible("trailing", True, self.THEME_3D["trailing"]["opacity"])
+            self._set_layer_visible("circles", True, self.THEME_3D["normal"]["opacity"])
+            self._set_layer_visible("meridional", True, self.THEME_3D["meridional"]["opacity"])
+
+    def _apply_3d_visibility_and_layers(self, page_key):
+        if self.viewer_3D is None:
+            return False
+        enable_3d = page_key != "meridional"
+        self.viewer_3D.setVisible(enable_3d)
+        self.viewer_3D.setEnabled(enable_3d)
+        if not enable_3d:
+            return False
+        self._apply_view_mode(page_key)
+        return True
+
+    def _update_plots_for_page(self, page_key):
+        if page_key in ["meridional", "beta", "thickness"]:
+            self.update_meridional_plot()
+        if page_key == "beta":
+            self.update_beta_plot()
+        elif page_key == "thickness":
+            self.update_thickness_plot()
+        elif page_key == "edges":
+            self.update_leading_edge_plot()
+
+    def _update_3d_for_page(self):
+        self.plot_blade()
+
+    def switch_page(self, index):
+        page_key = self._page_key_for_index(index)
+        self._apply_2d_visibility(page_key)
+        self._apply_stack_indexes(page_key)
+        enable_3d = self._apply_3d_visibility_and_layers(page_key)
+        self._update_plots_for_page(page_key)
+        if enable_3d:
+            self._update_3d_for_page()
 
     def switch_plots(self, index):
         self.update_meridional_plot()
@@ -1281,8 +1506,6 @@ class ImpellerDialog(QDialog):
         self.update_meridional_plot()
 
     def switching_widgets(self):
-        if not hasattr(self.hub_merid, "set_linestyle"):
-            return
         direction = 1
         if self.sender().objectName().split("_")[-1] != "next":
             direction = -1
@@ -1302,57 +1525,45 @@ class ImpellerDialog(QDialog):
         if new_index == 0:
             for line in (self.leading_lines + self.trailing_lines + self.blade_lines + [self.blade_hub] +
                          [self.blade_tip] + self.pressure_lines + self.suction_lines):
-                line.set_linestyle("None")
-            self.hub_merid.set_linestyle("-")
-            self.tip_merid.set_linestyle("-")
-            self.impeller_hub_inlet.set_linestyle("--")
-            self.impeller_hub_exit.set_linestyle("--")
-            self.impeller_tip_exit.set_linestyle("--")
-            self.impeller_tip_inlet.set_linestyle("--")
+                self._set_line_visibility(line, False)
+            for line in [self.hub_merid, self.tip_merid, self.impeller_hub_inlet, self.impeller_hub_exit,
+                         self.impeller_tip_exit, self.impeller_tip_inlet]:
+                self._set_line_visibility(line, True)
             self.stackedWidget.setCurrentIndex(index + direction)
             self.pushButton_before.setEnabled(False)
 
         if new_index == 1:
             for line in self.leading_lines + self.trailing_lines + self.pressure_lines + self.suction_lines:
-                line.set_linestyle("None")
+                self._set_line_visibility(line, False)
             for line in self.blade_lines + [self.blade_hub] + [self.blade_tip]:
-                line.set_linestyle("--")
-            self.hub_merid.set_linestyle("-")
-            self.tip_merid.set_linestyle("-")
-            self.impeller_hub_inlet.set_linestyle("--")
-            self.impeller_hub_exit.set_linestyle("--")
-            self.impeller_tip_exit.set_linestyle("--")
-            self.impeller_tip_inlet.set_linestyle("--")
+                self._set_line_visibility(line, True)
+            for line in [self.hub_merid, self.tip_merid, self.impeller_hub_inlet, self.impeller_hub_exit,
+                         self.impeller_tip_exit, self.impeller_tip_inlet]:
+                self._set_line_visibility(line, True)
             self.stackedWidget.setCurrentIndex(index + direction)
 
         if new_index == 2:
             for line in self.leading_lines + self.trailing_lines + self.blade_lines:
-                line.set_linestyle("None")
+                self._set_line_visibility(line, False)
             for line in self.pressure_lines + self.suction_lines:
-                line.set_linestyle("-")
+                self._set_line_visibility(line, True)
             for line in [self.blade_hub] + [self.blade_tip]:
-                line.set_linestyle("--")
-            self.hub_merid.set_linestyle("-")
-            self.tip_merid.set_linestyle("-")
-            self.impeller_hub_inlet.set_linestyle("--")
-            self.impeller_hub_exit.set_linestyle("--")
-            self.impeller_tip_exit.set_linestyle("--")
-            self.impeller_tip_inlet.set_linestyle("--")
+                self._set_line_visibility(line, True)
+            for line in [self.hub_merid, self.tip_merid, self.impeller_hub_inlet, self.impeller_hub_exit,
+                         self.impeller_tip_exit, self.impeller_tip_inlet]:
+                self._set_line_visibility(line, True)
             self.stackedWidget.setCurrentIndex(index + direction)
 
         if new_index in [3, 4]:
             for line in self.blade_lines:
-                line.set_linestyle("None")
+                self._set_line_visibility(line, False)
             for line in self.leading_lines + self.trailing_lines + self.pressure_lines + self.suction_lines:
-                line.set_linestyle("-")
+                self._set_line_visibility(line, True)
             for line in [self.blade_hub] + [self.blade_tip]:
-                line.set_linestyle("--")
-            self.hub_merid.set_linestyle("-")
-            self.tip_merid.set_linestyle("-")
-            self.impeller_hub_inlet.set_linestyle("--")
-            self.impeller_hub_exit.set_linestyle("--")
-            self.impeller_tip_exit.set_linestyle("--")
-            self.impeller_tip_inlet.set_linestyle("--")
+                self._set_line_visibility(line, True)
+            for line in [self.hub_merid, self.tip_merid, self.impeller_hub_inlet, self.impeller_hub_exit,
+                         self.impeller_tip_exit, self.impeller_tip_inlet]:
+                self._set_line_visibility(line, True)
             self.stackedWidget.setCurrentIndex(index + direction)
             if new_index == 4:
                 self.pushButton_next.setEnabled(False)
@@ -1520,6 +1731,8 @@ class ImpellerDialog(QDialog):
         for i, blade_line in enumerate(self.rotor3D.guides_dict["blade_guides"]):
             if i < len(self.blade_lines):
                 self.blade_lines[i].points = blade_line
+            if i < len(self.blade_highlight_lines):
+                self.blade_highlight_lines[i].points = blade_line
 
         for i, (pressure_line, suction_line) in enumerate(
                 zip(self.rotor3D.foil_dict["pressure"]["curves"], self.rotor3D.foil_dict["suction"]["curves"])):
