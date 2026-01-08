@@ -86,6 +86,16 @@
                                         </spacer>
                                     </item>
                                     <item row="0" column="2">
+                                        <widget class="QPushButton" name="pushButton_import_json">
+                                            <property name="toolTip">
+                                                <string>Load pump inputs from a JSON file and fill the form</string>
+                                            </property>
+                                            <property name="text">
+                                                <string>JSON Import</string>
+                                            </property>
+                                        </widget>
+                                    </item>
+                                    <item row="0" column="3">
                                         <widget class="QPushButton" name="pushButton_calculate">
                                             <property name="text">
                                                 <string>Calculate Pump</string>

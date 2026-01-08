@@ -644,6 +644,7 @@ class PotaSetupDialog(QDialog):
         self.groupBox.layout().replaceWidget(self.widget_dummy, self.canvas_cordier)
 
         self.pushButton_import.clicked.connect(self.import_pump)
+        self.pushButton_import_json.clicked.connect(self.import_pump_json)
         self.pushButton_calculate.clicked.connect(self.calc_pump)
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
@@ -677,6 +678,164 @@ class PotaSetupDialog(QDialog):
             self.update_table()
             self.plot_cordier()
             self.inputs_changed = False
+
+    def import_pump_json(self):
+        # JSON schema (units as shown in the UI):
+        # {
+        #   "rpm": 21000,
+        #   "mass_flow": 2.50,
+        #   "outlet_pressure_bar": 70.0,
+        #   "inlet_pressure_bar": 3.0,
+        #   "inlet_angle_deg": 20.0,
+        #   "inlet_diameter_mm": 40.0,
+        #   "outlet_diameter_mm": 120.0,
+        #   "second_stage": false,
+        #   "double_suction": false,
+        #   "fluid": {
+        #     "name": "LOX",
+        #     "density": 1141.0,
+        #     "dynamicViscosity": 0.0002,
+        #     "vaporPressure": 101325.0
+        #   }
+        # }
+        file_path, _ = QFileDialog.getOpenFileName(parent=self, caption="Select JSON File", directory="./",
+                                                   filter="JSON Files (*.json)")
+        if not file_path:
+            return
+
+        try:
+            with open(file_path, "r", encoding="utf-8") as file:
+                data = json.load(file)
+        except (OSError, json.JSONDecodeError) as exc:
+            QMessageBox.critical(self, "JSON Yükleme Hatası", f"JSON dosyası okunamadı:\n{exc}")
+            return
+
+        if not isinstance(data, dict):
+            QMessageBox.warning(self, "Geçersiz JSON", "JSON içeriği bir nesne olmalıdır.")
+            return
+
+        required_keys = [
+            "rpm",
+            "mass_flow",
+            "outlet_pressure_bar",
+            "inlet_pressure_bar",
+            "inlet_angle_deg",
+            "inlet_diameter_mm",
+            "outlet_diameter_mm",
+        ]
+        missing = [key for key in required_keys if key not in data]
+        if missing:
+            QMessageBox.warning(
+                self,
+                "Eksik Alanlar",
+                "Eksik JSON alanları:\n" + "\n".join(missing),
+            )
+            return
+
+        def coerce_number(value, field_name):
+            if isinstance(value, bool):
+                raise ValueError(f"{field_name} sayısal bir değer olmalıdır.")
+            try:
+                return float(value)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"{field_name} sayısal bir değer olmalıdır.") from exc
+
+        try:
+            rpm = coerce_number(data["rpm"], "rpm")
+            mass_flow = coerce_number(data["mass_flow"], "mass_flow")
+            outlet_pressure = coerce_number(data["outlet_pressure_bar"], "outlet_pressure_bar")
+            inlet_pressure = coerce_number(data["inlet_pressure_bar"], "inlet_pressure_bar")
+            inlet_angle = coerce_number(data["inlet_angle_deg"], "inlet_angle_deg")
+            inlet_diameter = coerce_number(data["inlet_diameter_mm"], "inlet_diameter_mm")
+            outlet_diameter = coerce_number(data["outlet_diameter_mm"], "outlet_diameter_mm")
+        except ValueError as exc:
+            QMessageBox.warning(self, "Geçersiz Değer", str(exc))
+            return
+
+        if rpm <= 0:
+            QMessageBox.warning(self, "Geçersiz Değer", "rpm değeri 0'dan büyük olmalıdır.")
+            return
+        if mass_flow <= 0:
+            QMessageBox.warning(self, "Geçersiz Değer", "mass_flow değeri 0'dan büyük olmalıdır.")
+            return
+        if inlet_pressure < 0 or outlet_pressure < 0:
+            QMessageBox.warning(self, "Geçersiz Değer", "Basınç değerleri negatif olamaz.")
+            return
+        if inlet_diameter <= 0 or outlet_diameter <= 0:
+            QMessageBox.warning(self, "Geçersiz Değer", "Çap değerleri 0'dan büyük olmalıdır.")
+            return
+        if not (0 <= inlet_angle <= 90):
+            QMessageBox.warning(self, "Geçersiz Değer", "inlet_angle_deg 0 ile 90 arasında olmalıdır.")
+            return
+
+        fluid_data = data.get("fluid") or {}
+        if not isinstance(fluid_data, dict):
+            QMessageBox.warning(self, "Geçersiz JSON", "fluid alanı bir nesne olmalıdır.")
+            return
+
+        line_edits = [
+            self.lineEdit_revolution,
+            self.lineEdit_mass_flow,
+            self.lineEdit_outlet_pressure,
+            self.lineEdit_inlet_pressure,
+            self.lineEdit_inlet_angle,
+            self.lineEdit_inlet_diameter,
+            self.lineEdit_outlet_diameter,
+        ]
+        checkboxes = [self.checkBox_second_stage, self.checkBox_double_suction]
+
+        for line_edit in line_edits:
+            line_edit.blockSignals(True)
+        for checkbox in checkboxes:
+            checkbox.blockSignals(True)
+        self.comboBox.blockSignals(True)
+
+        try:
+            self.lineEdit_revolution.setText(f"{rpm:.0f}")
+            self.lineEdit_mass_flow.setText(f"{mass_flow:.2f}")
+            self.lineEdit_outlet_pressure.setText(f"{outlet_pressure:.2f}")
+            self.lineEdit_inlet_pressure.setText(f"{inlet_pressure:.2f}")
+            self.lineEdit_inlet_angle.setText(f"{inlet_angle:.2f}")
+            self.lineEdit_inlet_diameter.setText(f"{inlet_diameter:.2f}")
+            self.lineEdit_outlet_diameter.setText(f"{outlet_diameter:.2f}")
+
+            self.checkBox_second_stage.setChecked(bool(data.get("second_stage", False)))
+            self.checkBox_double_suction.setChecked(bool(data.get("double_suction", False)))
+
+            fluid_name = fluid_data.get("name")
+            if isinstance(fluid_name, str) and self.comboBox.findText(fluid_name) != -1:
+                self.comboBox.setCurrentText(fluid_name)
+            else:
+                self.comboBox.setCurrentText("Kullanıcı Tanımlı")
+        finally:
+            for line_edit in line_edits:
+                line_edit.blockSignals(False)
+            for checkbox in checkboxes:
+                checkbox.blockSignals(False)
+            self.comboBox.blockSignals(False)
+
+        self.handle_combo_box_change(self.comboBox.currentText())
+
+        if self.comboBox.currentText() == "Kullanıcı Tanımlı":
+            fluid_fields = {
+                "density": self.lineEdit_density,
+                "dynamicViscosity": self.lineEdit_dynamicViscosity,
+                "vaporPressure": self.lineEdit_vaporPressure,
+            }
+            for field_key, line_edit in fluid_fields.items():
+                if field_key in fluid_data:
+                    try:
+                        value = coerce_number(fluid_data[field_key], field_key)
+                    except ValueError as exc:
+                        QMessageBox.warning(self, "Geçersiz Değer", str(exc))
+                        return
+                    line_edit.blockSignals(True)
+                    line_edit.setText(f"{value:.6g}")
+                    line_edit.blockSignals(False)
+                    self.fluid.update_properties(field_key, value)
+
+        self.inputs_changed = True
+        self.calc_pump()
 
     def calc_pump(self):
         try:
