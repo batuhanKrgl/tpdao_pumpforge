@@ -13,7 +13,8 @@ from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QApplication, QMessageBox, QWidget, QHeaderView, QDoubleSpinBox, \
-    QPushButton, QAbstractItemView, QMainWindow, QFileDialog, QLineEdit, QTableWidgetItem, QRadioButton, QSizePolicy
+    QPushButton, QAbstractItemView, QMainWindow, QFileDialog, QLineEdit, QTableWidgetItem, QRadioButton, QSizePolicy, \
+    QGridLayout
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -752,6 +753,9 @@ class PotaSetupDialog(QDialog):
 
 class ImpellerDialog(QDialog):
     DEBUG_LAYOUTS = False
+    BETA_COL_SPAN = 0
+    BETA_COL_INLET = 1
+    BETA_COL_OUTLET = 2
     THEME_3D = {
         "camber_hi": {"color": (1.0, 0.3, 0.0), "opacity": 1.0},
         "circles": {"color": (0.4, 0.4, 0.4), "opacity": 0.6},
@@ -771,6 +775,7 @@ class ImpellerDialog(QDialog):
         "gridLayout_upper_2": ["gridLayout_upper_2", "gridLayout_upper_thickness"],
         "gridLayout_lower_2": ["gridLayout_lower_2", "gridLayout_lower_edges"],
         "gridLayout_upper_3": ["gridLayout_upper_3", "gridLayout_lower_3", "gridLayout_upper_trailing"],
+        "gridLayout_lower_3": ["gridLayout_lower_3"],
         "gridLayout_3d": ["gridLayout_3d"],
         "stackedWidget": ["stackedWidget", "stackedWidget_lower", "stackedWidget_upper"],
         "stackedWidget_upper": ["stackedWidget_upper"],
@@ -786,6 +791,9 @@ class ImpellerDialog(QDialog):
         "radioButton_outlet_free": ["radioButton_outlet_free"],
         "pushButton_ok": ["pushButton_ok", "pushButton"],
         "pushButton_cancel": ["pushButton_cancel"],
+        "dockWidget_3d": ["dockWidget_3d"],
+        "dockWidget_rz": ["dockWidget_rz"],
+        "dockWidget_xy": ["dockWidget_xy"],
     }
 
     def __init__(self, ui_file, imp1D: pump1D.Impeller = None, ind1D: pump1D.Inducer = None, parent=None):
@@ -800,7 +808,7 @@ class ImpellerDialog(QDialog):
         self._init_3d()
         self._refresh_all()
         if self.toolBox is not None:
-            self.switch_page(self.toolBox.currentIndex())
+            self.on_toolbox_page_changed(self.toolBox.currentIndex())
 
     def _init_model_refs(self, imp1D, ind1D):
         self.sender_name = ""
@@ -840,6 +848,7 @@ class ImpellerDialog(QDialog):
         self.gridLayout_upper_2 = self._resolve_layout("gridLayout_upper_2")
         self.gridLayout_lower_2 = self._resolve_layout("gridLayout_lower_2")
         self.gridLayout_upper_3 = self._resolve_layout("gridLayout_upper_3")
+        self.gridLayout_lower_3 = self._resolve_layout("gridLayout_lower_3")
         self.gridLayout_3d = self._resolve_layout("gridLayout_3d")
         self.stackedWidget = self._resolve_widget("stackedWidget")
         self.stackedWidget_upper = self._resolve_widget("stackedWidget_upper")
@@ -855,19 +864,63 @@ class ImpellerDialog(QDialog):
         self.radioButton_outlet_free = self._resolve_widget("radioButton_outlet_free")
         self.pushButton_ok = self._resolve_widget("pushButton_ok")
         self.pushButton_cancel = self._resolve_widget("pushButton_cancel")
+        self.dockWidget_3d = self._resolve_widget("dockWidget_3d")
+        self.dockWidget_rz = self._resolve_widget("dockWidget_rz")
+        self.dockWidget_xy = self._resolve_widget("dockWidget_xy")
 
         if self._missing_widgets:
             print(f"ImpellerDialog missing widgets (no-op): {', '.join(self._missing_widgets)}")
 
     def _bind_signals(self):
+        self.wire_ui_signals()
+
+    def wire_ui_signals(self):
+        self._beta_table_updating = False
+        self._wire_meridional_inputs()
+        self._wire_thickness_inputs()
+        self._wire_beta_inputs()
+        self._wire_edge_inputs()
+        self._wire_1d_buttons()
+        self._wire_dialog_buttons()
+        self._validate_required_widgets()
+
+    def _wire_meridional_inputs(self):
         if self.page_meridional is not None:
             for line_edit in self.page_meridional.findChildren(QLineEdit):
-                line_edit.setValidator(QDoubleValidator())
                 key = line_edit.objectName().replace("lineEdit_", "")
-                if key in self.rotor3D.meridional_dict:
-                    line_edit.setText(f"{self.rotor3D.meridional_dict[key] * 1000:.1f}")
-                    line_edit.textChanged.connect(self.update_meridonal_dict_CP)
+                if key not in self.rotor3D.meridional_dict:
+                    continue
+                line_edit.setValidator(QDoubleValidator())
+                line_edit.setText(f"{self.rotor3D.meridional_dict[key] * 1000:.1f}")
+                line_edit.editingFinished.connect(self.update_meridonal_dict_CP)
 
+        spinbox_defaults = [
+            ("doubleSpinBox_hub_inlet_CP", "hub_inlet_CP", self.update_meridonal_dict_CP),
+            ("doubleSpinBox_tip_inlet_CP", "tip_inlet_CP", self.update_meridonal_dict_CP),
+            ("doubleSpinBox_hub_outlet_CP", "hub_outlet_CP", self.update_meridonal_dict_CP),
+            ("doubleSpinBox_tip_outlet_CP", "tip_outlet_CP", self.update_meridonal_dict_CP),
+            ("doubleSpinBox_LE_hub", "leading_edge_@hub", self.update_leading_edge),
+            ("doubleSpinBox_LE_tip", "leading_edge_@tip", self.update_leading_edge),
+            ("doubleSpinBox_TE_hub", "trailing_edge_@hub", self.update_leading_edge),
+            ("doubleSpinBox_TE_tip", "trailing_edge_@tip", self.update_leading_edge),
+        ]
+        for spin_box_name, key, handler in spinbox_defaults:
+            spin_box = getattr(self, spin_box_name, None)
+            if spin_box is None:
+                continue
+            if key in self.rotor3D.meridional_dict:
+                spin_box.setValue(self.rotor3D.meridional_dict[key])
+            spin_box.valueChanged.connect(handler)
+
+        if getattr(self, "doubleSpinBox_LE_guide_which", None) is not None:
+            self.doubleSpinBox_LE_guide_which.setMaximum(self.rotor3D.guides_dict["number_of_guides"])
+            self.doubleSpinBox_LE_guide_which.setValue(self.rotor3D.meridional_dict["leading_edge_@guide"][0])
+            self.doubleSpinBox_LE_guide_which.valueChanged.connect(self.update_leading_edge)
+        if getattr(self, "doubleSpinBox_LE_guide", None) is not None:
+            self.doubleSpinBox_LE_guide.setValue(self.rotor3D.meridional_dict["leading_edge_@guide"][1])
+            self.doubleSpinBox_LE_guide.valueChanged.connect(self.update_leading_edge)
+
+    def _wire_thickness_inputs(self):
         for line_edit_name in ["lineEdit_hub_thickness", "lineEdit_tip_thickness"]:
             line_edit = getattr(self, line_edit_name, None)
             if line_edit is None:
@@ -876,27 +929,11 @@ class ImpellerDialog(QDialog):
             line_edit.setText(f"{self.rotor3D.thickness_dict[key]['thickness'][0] * 1000:.1f}")
             line_edit.textChanged.connect(self.update_thickness_dict)
 
-        if getattr(self, "doubleSpinBox_LE_guide_which", None) is not None:
-            self.doubleSpinBox_LE_guide_which.setMaximum(self.rotor3D.guides_dict["number_of_guides"])
-
-        spinbox_defaults = [
-            ("doubleSpinBox_hub_inlet_CP", "hub_inlet_CP"),
-            ("doubleSpinBox_tip_inlet_CP", "tip_inlet_CP"),
-            ("doubleSpinBox_hub_outlet_CP", "hub_outlet_CP"),
-            ("doubleSpinBox_tip_outlet_CP", "tip_outlet_CP"),
-            ("doubleSpinBox_LE_hub", "leading_edge_@hub"),
-            ("doubleSpinBox_LE_tip", "leading_edge_@tip"),
-            ("doubleSpinBox_TE_hub", "trailing_edge_@hub"),
-            ("doubleSpinBox_TE_tip", "trailing_edge_@tip"),
-        ]
-        for spin_box_name, key in spinbox_defaults:
-            spin_box = getattr(self, spin_box_name, None)
-            if spin_box is not None:
-                spin_box.setValue(self.rotor3D.meridional_dict[key])
-        if getattr(self, "doubleSpinBox_LE_guide_which", None) is not None:
-            self.doubleSpinBox_LE_guide_which.setValue(self.rotor3D.meridional_dict["leading_edge_@guide"][0])
-        if getattr(self, "doubleSpinBox_LE_guide", None) is not None:
-            self.doubleSpinBox_LE_guide.setValue(self.rotor3D.meridional_dict["leading_edge_@guide"][1])
+        for prefix in ["hub", "tip"]:
+            for suffix in ["piece", "node", "loc", "dist"]:
+                spin_box = getattr(self, f"doubleSpinBox_{prefix}_{suffix}", None)
+                if spin_box is not None:
+                    spin_box.valueChanged.connect(self.update_thickness_dict)
 
         if getattr(self, "doubleSpinBox_hub_piece", None) is not None:
             self.doubleSpinBox_hub_node.setMaximum(self.doubleSpinBox_hub_piece.value() + 1)
@@ -906,37 +943,34 @@ class ImpellerDialog(QDialog):
             self.doubleSpinBox_hub_loc.setEnabled(False)
         if getattr(self, "doubleSpinBox_tip_loc", None) is not None:
             self.doubleSpinBox_tip_loc.setEnabled(False)
-        if getattr(self, "doubleSpinBox_leading_ratio", None) is not None:
-            self.doubleSpinBox_leading_ratio.valueChanged.connect(self.update_leading_edge_dict)
-        if self.rotor3D.type == "inducer" and getattr(self, "doubleSpinBox_trailing_ratio", None) is not None:
-            self.doubleSpinBox_trailing_ratio.valueChanged.connect(self.update_leading_edge_dict)
 
+    def _wire_beta_inputs(self):
         for spin_box in self.findChildren(QDoubleSpinBox):
-            parent_name = spin_box.parent().objectName() if spin_box.parent() is not None else ""
-            grandparent = spin_box.parent().parent() if spin_box.parent() is not None else None
-            grandparent_name = grandparent.objectName() if grandparent is not None else ""
-            if parent_name.split("_")[-1] == "bezierNodes":
-                spin_box.valueChanged.connect(self.update_meridonal_dict_CP)
-            elif parent_name.split("_")[-1] == "betaCPs":
-                spin_box.valueChanged.connect(self.update_beta_dict_CP)
-            elif parent_name.split("_")[-1] in ["leadingMer", "trailingMer"]:
-                spin_box.valueChanged.connect(self.update_leading_edge)
-            elif grandparent_name.split("_")[-1] == "thickness":
-                spin_box.valueChanged.connect(self.update_thickness_dict)
-
-        for push_button in self.findChildren(QPushButton):
-            parent_name = push_button.parent().objectName() if push_button.parent() is not None else ""
-            if parent_name.split("_")[-1] == "1D":
-                push_button.clicked.connect(self.recall_1D_value)
+            name = spin_box.objectName()
+            if name.startswith("doubleSpinBox_hub_") or name.startswith("doubleSpinBox_tip_"):
+                parts = name.replace("doubleSpinBox_", "").split("_")
+                if len(parts) == 2 and parts[1].isdigit():
+                    spin_box.valueChanged.connect(self.update_beta_dict_CP)
 
         if self.radioButton_inlet_lineer is not None:
-            self.radioButton_inlet_lineer.toggled.connect(self.update_table_view)
+            self.radioButton_inlet_lineer.toggled.connect(self._handle_beta_mode_changed)
         if self.radioButton_inlet_free is not None:
-            self.radioButton_inlet_free.toggled.connect(self.update_table_view)
+            self.radioButton_inlet_free.toggled.connect(self._handle_beta_mode_changed)
         if self.radioButton_outlet_lineer is not None:
-            self.radioButton_outlet_lineer.toggled.connect(self.update_table_view)
+            self.radioButton_outlet_lineer.toggled.connect(self._handle_beta_mode_changed)
         if self.radioButton_outlet_free is not None:
-            self.radioButton_outlet_free.toggled.connect(self.update_table_view)
+            self.radioButton_outlet_free.toggled.connect(self._handle_beta_mode_changed)
+
+        if self.tableWidget_beta is not None:
+            self._configure_beta_table()
+            self.tableWidget_beta.itemChanged.connect(self._handle_beta_table_change)
+            self.update_table_view()
+
+    def _wire_edge_inputs(self):
+        if getattr(self, "doubleSpinBox_leading_ratio", None) is not None:
+            self.doubleSpinBox_leading_ratio.valueChanged.connect(self.update_leading_edge_dict)
+        if getattr(self, "doubleSpinBox_trailing_ratio", None) is not None:
+            self.doubleSpinBox_trailing_ratio.valueChanged.connect(self.update_leading_edge_dict)
 
         if self.comboBox_leading is not None:
             self.comboBox_leading.currentIndexChanged.connect(self.handle_comboBox_change)
@@ -948,28 +982,100 @@ class ImpellerDialog(QDialog):
         if self.stackedWidget_trailing is not None:
             self.stackedWidget_trailing.setCurrentIndex(0)
 
-        if self.tableWidget_beta is not None:
-            self.tableWidget_beta.setEditTriggers(QAbstractItemView.DoubleClicked)
-            self.tableWidget_beta.setRowCount(self.rotor3D.beta_dict["array"].shape[0])
-            self.tableWidget_beta.horizontalHeader().setStretchLastSection(True)
-            self.tableWidget_beta.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+    def _wire_1d_buttons(self):
+        for push_button in self.findChildren(QPushButton):
+            parent_name = push_button.parent().objectName() if push_button.parent() is not None else ""
+            if parent_name.split("_")[-1] == "1D":
+                push_button.clicked.connect(self.recall_1D_value)
 
-            for i in range(self.rotor3D.beta_dict["array"].shape[0]):
-                self.tableWidget_beta.setItem(i, 0,
-                                              QTableWidgetItem(
-                                                  f'{self.rotor3D.beta_dict["array"][i, 0] * 180 / np.pi:.2f}'))
-                self.tableWidget_beta.setItem(i, 1,
-                                              QTableWidgetItem(
-                                                  f'{self.rotor3D.beta_dict["array"][i, -1] * 180 / np.pi:.2f}'))
-            self.update_table_view()
-
+    def _wire_dialog_buttons(self):
         if self.toolBox is not None:
-            self.toolBox.currentChanged.connect(self.switch_page)
+            self.toolBox.currentChanged.connect(self.on_toolbox_page_changed)
 
         if self.pushButton_ok is not None:
             self.pushButton_ok.clicked.connect(self.accept)
         if self.pushButton_cancel is not None:
             self.pushButton_cancel.clicked.connect(self.reject)
+
+    def _configure_beta_table(self):
+        self.tableWidget_beta.setEditTriggers(QAbstractItemView.DoubleClicked)
+        self.tableWidget_beta.setRowCount(self.rotor3D.beta_dict["array"].shape[0])
+        self.tableWidget_beta.setColumnCount(3)
+        self.tableWidget_beta.setHorizontalHeaderLabels(["Span", "Inlet", "Outlet"])
+        self.tableWidget_beta.verticalHeader().setVisible(False)
+        self.tableWidget_beta.horizontalHeader().setStretchLastSection(True)
+        self.tableWidget_beta.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tableWidget_beta.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        layout = self.tableWidget_beta.parentWidget().layout() if self.tableWidget_beta.parentWidget() else None
+        if isinstance(layout, QGridLayout):
+            index = layout.indexOf(self.tableWidget_beta)
+            if index >= 0:
+                row, _, rowspan, _ = layout.getItemPosition(index)
+                layout.setRowStretch(row, 1)
+                if rowspan > 1:
+                    layout.setRowStretch(row + rowspan - 1, 1)
+        if layout is not None:
+            layout.setStretchFactor(self.tableWidget_beta, 1)
+
+    def _handle_beta_mode_changed(self):
+        if self._beta_table_updating:
+            return
+        self.update_beta_dict()
+
+    def _handle_beta_table_change(self, item):
+        if self._beta_table_updating:
+            return
+        if item is None or item.column() == self.BETA_COL_SPAN:
+            return
+        self.update_beta_dict()
+
+    def _ensure_beta_item(self, row, column):
+        item = self.tableWidget_beta.item(row, column)
+        if item is None:
+            item = QTableWidgetItem("")
+            self.tableWidget_beta.setItem(row, column, item)
+        return item
+
+    def _read_beta_column(self, column):
+        values = []
+        for row in range(self.tableWidget_beta.rowCount()):
+            item = self.tableWidget_beta.item(row, column)
+            if item is None:
+                values.append(None)
+                continue
+            try:
+                values.append(float(item.text()) * np.pi / 180)
+            except ValueError:
+                values.append(None)
+        return values
+
+    def _validate_required_widgets(self):
+        required_names = [
+            "toolBox",
+            "tableWidget_beta",
+            "gridLayout_upper_1",
+            "gridLayout_lower_1",
+            "gridLayout_3d",
+        ]
+        missing = []
+        for name in required_names:
+            if name.startswith("gridLayout"):
+                if self._resolve_layout(name) is None:
+                    missing.append(name)
+            else:
+                if self._resolve_widget(name) is None:
+                    missing.append(name)
+        meridional_inputs = [
+            "lineEdit_hub_outlet_radius",
+            "lineEdit_tip_inlet_radius",
+            "lineEdit_width",
+            "lineEdit_outlet_width",
+        ]
+        for name in meridional_inputs:
+            if self.findChild(QLineEdit, name) is None:
+                missing.append(name)
+        if missing:
+            raise RuntimeError(f"ImpellerDialog missing required widgets: {', '.join(sorted(set(missing)))}")
 
     def _init_plots(self):
         required_layouts = {
@@ -983,22 +1089,11 @@ class ImpellerDialog(QDialog):
             raise RuntimeError(f"ImpellerDialog missing required plot layouts: {', '.join(missing)}")
 
         self.viewer_meridional = GeometryPlot(self, got_axline=False, aspect_mode="equal")
-        self.gridLayout_lower_1.addWidget(self.viewer_meridional)
-
         self.viewer_beta = GeometryPlot(self, rz=False, aspect_mode="auto")
-        self.gridLayout_upper_1.addWidget(self.viewer_beta)
 
         self.viewer_thickness = GeometryPlot(self, rz=False)
-        self.gridLayout_upper_2.addWidget(self.viewer_thickness)
-
         self.viewer_leading_edges = GeometryPlot(self, rz=False)
-        self.gridLayout_lower_2.addWidget(self.viewer_leading_edges)
-
         self.viewer_trailing_edges = GeometryPlot(self, rz=False)
-        if self.gridLayout_upper_2 is not None:
-            self.gridLayout_upper_2.addWidget(self.viewer_trailing_edges)
-        elif self.gridLayout_upper_3 is not None:
-            self.gridLayout_upper_3.addWidget(self.viewer_trailing_edges)
 
         if self.DEBUG_LAYOUTS:
             self._debug_viewer_parent("viewer_meridional", self.viewer_meridional)
@@ -1228,6 +1323,96 @@ class ImpellerDialog(QDialog):
             return "edges"
         return ["meridional", "beta", "thickness", "edges"][index] if index in range(4) else index
 
+    def _clear_layout(self, layout):
+        if layout is None:
+            return
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+
+    def _set_slot_widget(self, layout, widget):
+        if layout is None:
+            return
+        self._clear_layout(layout)
+        if widget is not None:
+            layout.addWidget(widget)
+            widget.setVisible(True)
+
+    def _set_layout_visible(self, layout, visible):
+        if layout is None:
+            return
+        parent = layout.parent()
+        if isinstance(parent, QWidget):
+            parent.setVisible(visible)
+
+    def _set_widget_visible(self, widget, visible):
+        if widget is None:
+            return
+        widget.setVisible(visible)
+        widget.setEnabled(visible)
+
+    def _upper_layout_index(self, layout):
+        if layout == self.gridLayout_upper_2:
+            return 1
+        return 0
+
+    def _lower_layout_index(self, layout):
+        if layout == self.gridLayout_lower_2:
+            return 2
+        if layout == self.gridLayout_lower_3:
+            return 3
+        return 1
+
+    def _primary_upper_layout(self):
+        return self.gridLayout_upper_1 or self.gridLayout_upper_2 or self.gridLayout_upper_3
+
+    def _primary_lower_layout(self):
+        return self.gridLayout_lower_1 or self.gridLayout_lower_2 or self.gridLayout_lower_3
+
+    def _apply_stack_layouts(self, upper_layout, lower_layout):
+        if self.stackedWidget_upper is not None and upper_layout is not None:
+            self.stackedWidget_upper.setCurrentIndex(self._upper_layout_index(upper_layout))
+        if self.stackedWidget_lower is not None and lower_layout is not None:
+            self.stackedWidget_lower.setCurrentIndex(self._lower_layout_index(lower_layout))
+
+    def on_toolbox_page_changed(self, index):
+        page_key = self._page_key_for_index(index)
+        upper_layout = self._primary_upper_layout()
+        lower_layout = self._primary_lower_layout()
+        self._apply_stack_layouts(upper_layout, lower_layout)
+
+        if page_key == "meridional":
+            self._set_slot_widget(upper_layout, self.viewer_meridional)
+            self._clear_layout(lower_layout)
+            self._set_layout_visible(lower_layout, False)
+            self._set_widget_visible(self.dockWidget_rz, False)
+            self._set_widget_visible(self.dockWidget_3d, False)
+        elif page_key == "beta":
+            self._set_slot_widget(upper_layout, self.viewer_meridional)
+            self._set_slot_widget(lower_layout, self.viewer_beta)
+            self._set_layout_visible(lower_layout, True)
+            self._set_widget_visible(self.dockWidget_rz, True)
+            self._set_widget_visible(self.dockWidget_3d, True)
+        elif page_key == "thickness":
+            self._set_slot_widget(upper_layout, self.viewer_meridional)
+            self._set_slot_widget(lower_layout, self.viewer_thickness)
+            self._set_layout_visible(lower_layout, True)
+            self._set_widget_visible(self.dockWidget_rz, True)
+            self._set_widget_visible(self.dockWidget_3d, True)
+        elif page_key == "edges":
+            self._set_slot_widget(upper_layout, self.viewer_leading_edges)
+            self._set_slot_widget(lower_layout, self.viewer_trailing_edges)
+            self._set_layout_visible(lower_layout, True)
+            self._set_widget_visible(self.dockWidget_rz, True)
+            self._set_widget_visible(self.dockWidget_3d, True)
+
+        enable_3d = self._apply_3d_visibility_and_layers(page_key)
+        self._update_plots_for_page(page_key)
+        if enable_3d:
+            self._update_3d_for_page()
+
     def _apply_2d_visibility(self, page_key):
         viewers = {
             "meridional": self.viewer_meridional,
@@ -1325,13 +1510,7 @@ class ImpellerDialog(QDialog):
         self.plot_blade()
 
     def switch_page(self, index):
-        page_key = self._page_key_for_index(index)
-        self._apply_2d_visibility(page_key)
-        self._apply_stack_indexes(page_key)
-        enable_3d = self._apply_3d_visibility_and_layers(page_key)
-        self._update_plots_for_page(page_key)
-        if enable_3d:
-            self._update_3d_for_page()
+        self.on_toolbox_page_changed(index)
 
     def switch_plots(self, index):
         self.update_meridional_plot()
@@ -1350,12 +1529,20 @@ class ImpellerDialog(QDialog):
     def reject(self):
         super().reject()
 
-    def update_meridonal_dict_CP(self, value):
-        if self.sender().__class__ == QDoubleSpinBox:
-            key_name = self.sender().objectName().replace("doubleSpinBox_", "")
+    def update_meridonal_dict_CP(self, value=None):
+        sender = self.sender()
+        if isinstance(sender, QDoubleSpinBox):
+            key_name = sender.objectName().replace("doubleSpinBox_", "")
+            if value is None:
+                value = sender.value()
         else:
-            key_name = self.sender().objectName().replace("lineEdit_", "")
-            value = float(value) / 1000
+            key_name = sender.objectName().replace("lineEdit_", "")
+            if value is None:
+                value = sender.text()
+            try:
+                value = float(value) / 1000
+            except (ValueError, TypeError):
+                return
         if key_name in self.rotor3D.meridional_dict:
             self.rotor3D.meridional_dict[key_name] = value
         self.rotor3D.set_meridional_geometry()
@@ -1410,29 +1597,36 @@ class ImpellerDialog(QDialog):
     def update_beta_dict(self):
         if self.tableWidget_beta is None:
             return
+        if self.tableWidget_beta.rowCount() == 0:
+            return
+        last_row = self.tableWidget_beta.rowCount() - 1
+        inlet_values = self._read_beta_column(self.BETA_COL_INLET)
+        outlet_values = self._read_beta_column(self.BETA_COL_OUTLET)
         if self.radioButton_inlet_lineer is not None and self.radioButton_inlet_lineer.isChecked():
             self.rotor3D.beta_dict["inlet_betas"]["method"] = "linear"
-            self.rotor3D.beta_dict["inlet_betas"]["array"][0] = float(
-                self.tableWidget_beta.item(0, 0).text()) * np.pi / 180
-            self.rotor3D.beta_dict["inlet_betas"]["array"][-1] = float(
-                self.tableWidget_beta.item(6, 0).text()) * np.pi / 180
+            if inlet_values[0] is not None:
+                self.rotor3D.beta_dict["inlet_betas"]["array"][0] = inlet_values[0]
+            if inlet_values[last_row] is not None:
+                self.rotor3D.beta_dict["inlet_betas"]["array"][-1] = inlet_values[last_row]
         else:
             self.rotor3D.beta_dict["inlet_betas"]["method"] = "free"
             for row in range(self.tableWidget_beta.rowCount()):
-                self.rotor3D.beta_dict["inlet_betas"]["array"][row] = float(
-                    self.tableWidget_beta.item(row, 0).text()) * np.pi / 180
+                if inlet_values[row] is None:
+                    continue
+                self.rotor3D.beta_dict["inlet_betas"]["array"][row] = inlet_values[row]
 
         if self.radioButton_outlet_lineer is not None and self.radioButton_outlet_lineer.isChecked():
             self.rotor3D.beta_dict["outlet_betas"]["method"] = "linear"
-            self.rotor3D.beta_dict["outlet_betas"]["array"][0] = float(
-                self.tableWidget_beta.item(0, 1).text()) * np.pi / 180
-            self.rotor3D.beta_dict["outlet_betas"]["array"][-1] = float(
-                self.tableWidget_beta.item(6, 1).text()) * np.pi / 180
+            if outlet_values[0] is not None:
+                self.rotor3D.beta_dict["outlet_betas"]["array"][0] = outlet_values[0]
+            if outlet_values[last_row] is not None:
+                self.rotor3D.beta_dict["outlet_betas"]["array"][-1] = outlet_values[last_row]
         else:
             self.rotor3D.beta_dict["outlet_betas"]["method"] = "free"
             for row in range(self.tableWidget_beta.rowCount()):
-                self.rotor3D.beta_dict["outlet_betas"]["array"][row] = float(
-                    self.tableWidget_beta.item(row, 1).text()) * np.pi / 180
+                if outlet_values[row] is None:
+                    continue
+                self.rotor3D.beta_dict["outlet_betas"]["array"][row] = outlet_values[row]
 
         self.rotor3D.set_beta_array()
         self.rotor3D.set_thetas_from_betas()
@@ -1445,15 +1639,23 @@ class ImpellerDialog(QDialog):
         key2 = int(key_name.split("_")[1])
         self.rotor3D.beta_dict[key1 + "_beta_CP"][key2][0] = value
         self.rotor3D.set_beta_array()
+        self.rotor3D.set_thetas_from_betas()
         self.update_beta_plot()
 
     def update_table_view(self):
         if self.tableWidget_beta is None:
             return
+        self._beta_table_updating = True
+        self.tableWidget_beta.blockSignals(True)
+        span_values = np.linspace(0, 1, self.tableWidget_beta.rowCount())
         for i in range(self.tableWidget_beta.rowCount()):
-            item_inlet = self.tableWidget_beta.item(i, 0)
+            span_item = self._ensure_beta_item(i, self.BETA_COL_SPAN)
+            span_item.setText(f"{span_values[i]:.2f}")
+            span_item.setFlags(Qt.ItemIsEnabled)
+
+            item_inlet = self._ensure_beta_item(i, self.BETA_COL_INLET)
             item_inlet.setText(f'{self.rotor3D.beta_dict["array"][i, 0] * 180 / np.pi:.2f}')
-            item_outlet = self.tableWidget_beta.item(i, 1)
+            item_outlet = self._ensure_beta_item(i, self.BETA_COL_OUTLET)
             item_outlet.setText(f'{self.rotor3D.beta_dict["array"][i, -1] * 180 / np.pi:.2f}')
 
             if i not in [0, self.tableWidget_beta.rowCount() - 1]:
@@ -1467,6 +1669,11 @@ class ImpellerDialog(QDialog):
                         Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled | Qt.ItemIsUserCheckable | Qt.ItemIsEditable)
                 else:
                     item_outlet.setFlags(Qt.ItemIsDragEnabled | Qt.ItemIsUserCheckable)
+            else:
+                item_inlet.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
+                item_outlet.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
+        self.tableWidget_beta.blockSignals(False)
+        self._beta_table_updating = False
 
     def keyPressEvent(self, event):
         if self.stackedWidget is not None and self.stackedWidget.currentIndex() == 1:
@@ -1572,7 +1779,7 @@ class ImpellerDialog(QDialog):
 
     def update_thickness_dict(self, value):
         obj_name = self.sender().objectName().replace("doubleSpinBox_", "")
-        obj_name.replace("lineEdit_", "")
+        obj_name = obj_name.replace("lineEdit_", "")
         hub_or_tip = self.sender().parent().objectName().replace("groupBox_", "")
         if hub_or_tip not in self.rotor3D.thickness_dict:
             return
