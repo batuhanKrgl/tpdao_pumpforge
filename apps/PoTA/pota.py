@@ -324,7 +324,9 @@ class GeometryPlot(QWidget):
         self.canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.canvas.setStyleSheet("background:transparent;")
         self.canvas.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(NavigationToolbar(self.canvas, self))
         layout.addWidget(self.canvas)
         self.ax = self.figure.add_subplot(111, position=[0.0, 0.01, 0.999, 0.99])
@@ -838,6 +840,9 @@ class ImpellerDialog(QDialog):
             layout = getattr(self, candidate, None)
             if layout is not None:
                 return layout
+            layout = self.findChild(QGridLayout, candidate)
+            if layout is not None:
+                return layout
         self._missing_widgets.append(name)
         return None
 
@@ -1042,8 +1047,10 @@ class ImpellerDialog(QDialog):
             index = layout.indexOf(widget)
             if index == -1:
                 return
-            row, column, _, _ = layout.getItemPosition(index)
+            row, column, row_span, _ = layout.getItemPosition(index)
             layout.setRowStretch(row, 1)
+            if row_span > 1:
+                layout.setRowStretch(row + row_span - 1, 1)
             layout.setColumnStretch(column, 1)
 
     def _debug_assert_viewer_embedding(self):
@@ -1061,6 +1068,7 @@ class ImpellerDialog(QDialog):
                 continue
             assert viewer.parent() is not None, f"{name} has no parent"
             assert not viewer.isWindow(), f"{name} is floating"
+            assert viewer.canvas.parent() is not None, f"{name} canvas has no parent"
 
     def _read_beta_column(self, column):
         values = []
@@ -1363,6 +1371,11 @@ class ImpellerDialog(QDialog):
             return
         self._clear_layout(layout)
         if widget is not None:
+            parent = widget.parentWidget()
+            if parent is not None:
+                parent_layout = parent.layout()
+                if parent_layout is not None:
+                    parent_layout.removeWidget(widget)
             layout.addWidget(widget)
             widget.setVisible(True)
 
