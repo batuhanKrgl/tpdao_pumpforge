@@ -31,7 +31,6 @@ from src.fluid import Fluid
 from src.Utility.plot_on_cordier import cordier_plot_on
 from src.Utility.resource_call import resource_path
 from src.Pump.pump1D import Pump
-from src.Utility.UI_functions import is_line_edits_empty
 
 
 class PointCloudGeometry:
@@ -190,6 +189,76 @@ class Visualization(HasTraits):
     scene = Instance(MlabSceneModel, ())
     view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene), show_label=False),
                 width=800, height=600, resizable=True)
+
+
+def parse_float(text: str, field_name: str) -> float:
+    cleaned_text = text.strip().replace(",", ".")
+    try:
+        return float(cleaned_text)
+    except ValueError as exc:
+        raise ValueError(f"Invalid value for field: {field_name}") from exc
+
+
+def require_fields(dialog: QDialog, names: list) -> dict:
+    missing = []
+    values = {}
+    for name in names:
+        line_edit = dialog.findChild(QLineEdit, name)
+        if line_edit is None or not line_edit.text().strip():
+            missing.append(name)
+            if line_edit is not None:
+                line_edit.setStyleSheet("background-color: pink;")
+            continue
+        line_edit.setStyleSheet("")
+        values[name] = line_edit.text()
+    if missing:
+        raise ValueError(f"Missing required fields: {', '.join(missing)}")
+    return values
+
+
+def build_pump_inputs_from_ui(dialog: QDialog):
+    required_fields = [
+        "lineEdit_revolution",
+        "lineEdit_mass_flow",
+        "lineEdit_outlet_pressure",
+        "lineEdit_inlet_pressure",
+        "lineEdit_inlet_angle",
+        "lineEdit_inlet_diameter",
+        "lineEdit_outlet_diameter",
+        "lineEdit_density",
+        "lineEdit_dynamicViscosity",
+        "lineEdit_vaporPressure",
+    ]
+    values = require_fields(dialog, required_fields)
+
+    rpm = parse_float(values["lineEdit_revolution"], "lineEdit_revolution")
+    mass_flow = parse_float(values["lineEdit_mass_flow"], "lineEdit_mass_flow")
+    outlet_pressure_bar = parse_float(values["lineEdit_outlet_pressure"], "lineEdit_outlet_pressure")
+    inlet_pressure_bar = parse_float(values["lineEdit_inlet_pressure"], "lineEdit_inlet_pressure")
+    inlet_angle = parse_float(values["lineEdit_inlet_angle"], "lineEdit_inlet_angle")
+    inlet_diameter_mm = parse_float(values["lineEdit_inlet_diameter"], "lineEdit_inlet_diameter")
+    outlet_diameter_mm = parse_float(values["lineEdit_outlet_diameter"], "lineEdit_outlet_diameter")
+    density = parse_float(values["lineEdit_density"], "lineEdit_density")
+    dynamic_viscosity = parse_float(values["lineEdit_dynamicViscosity"], "lineEdit_dynamicViscosity")
+    vapor_pressure = parse_float(values["lineEdit_vaporPressure"], "lineEdit_vaporPressure")
+
+    pump_dict = {
+        "mass_flow": mass_flow,
+        "pressure_required": outlet_pressure_bar * 100000,
+        "inlet_pressure": inlet_pressure_bar * 100000,
+        "alpha": inlet_angle,
+        "double_suction": dialog.checkBox_double_suction.isChecked(),
+        "second_stage": dialog.checkBox_second_stage.isChecked(),
+        "inlet_radius": inlet_diameter_mm / 2000,
+        "outlet_radius": outlet_diameter_mm / 2000,
+        "shaft_radius": None,
+    }
+    fluid_props = {
+        "density": density,
+        "dynamicViscosity": dynamic_viscosity,
+        "vaporPressure": vapor_pressure,
+    }
+    return rpm, pump_dict, fluid_props
 
 
 class MayaviQWidget(QWidget):
@@ -582,10 +651,9 @@ class PotaSetupDialog(QDialog):
             self.checkBox_second_stage.setChecked(pump.is_second_stage)
             self.checkBox_double_suction.setChecked(pump.is_double_suction)
             self.comboBox.setCurrentText(pump.fluid.name)
+            self.handle_combo_box_change(pump.fluid.name)
 
             for line_edit in [self.lineEdit_density, self.lineEdit_dynamicViscosity, self.lineEdit_vaporPressure]:
-                line_edit.setEnabled(False)
-                line_edit.setStyleSheet("")
                 line_edit.setText(str(getattr(pump.fluid, line_edit.objectName().split("_")[-1])))
 
             self.pump = pump
@@ -594,24 +662,20 @@ class PotaSetupDialog(QDialog):
             self.inputs_changed = False
 
     def calc_pump(self):
-        if not is_line_edits_empty(self):
-            pump_dict = {
-                "mass_flow": float(self.lineEdit_mass_flow.text()),
-                "pressure_required": float(self.lineEdit_outlet_pressure.text()),
-                "inlet_pressure": float(self.lineEdit_inlet_pressure.text()),
-                "alpha": float(self.lineEdit_inlet_angle.text()),
-                "double_suction": self.checkBox_second_stage.isChecked(),
-                "second_stage": self.checkBox_second_stage.isChecked(),
-                "inlet_radius": float(self.lineEdit_inlet_diameter.text()),
-                "outlet_radius": float(self.lineEdit_outlet_diameter.text())
-            }
-            self.fluid.update_properties("density", float(self.lineEdit_density.text()))
-            self.fluid.update_properties("vaporPressure", float(self.lineEdit_vaporPressure.text()))
-            self.fluid.update_properties("dynamicViscosity", float(self.lineEdit_dynamicViscosity.text()))
-            self.pump = Pump(rpm=float(self.lineEdit_revolution.text()), pump_dict=pump_dict, fluid=self.fluid)
-            self.update_table()
-            self.plot_cordier()
-            self.inputs_changed = False
+        try:
+            rpm, pump_dict, fluid_props = build_pump_inputs_from_ui(self)
+        except ValueError as exc:
+            QMessageBox.warning(self, "Geçersiz Giriş", str(exc))
+            return False
+
+        self.fluid.update_properties("density", fluid_props["density"])
+        self.fluid.update_properties("vaporPressure", fluid_props["vaporPressure"])
+        self.fluid.update_properties("dynamicViscosity", fluid_props["dynamicViscosity"])
+        self.pump = Pump(rpm=rpm, pump_dict=pump_dict, fluid=self.fluid)
+        self.update_table()
+        self.plot_cordier()
+        self.inputs_changed = False
+        return True
 
     def handle_combo_box_change(self, fluid_name):
         if fluid_name in [os.path.splitext(f)[0] for f in os.listdir(resource_path("resource/fluids/oxidizer/"))]:
@@ -636,13 +700,8 @@ class PotaSetupDialog(QDialog):
         self.inputs_changed = True
 
     def accept(self):
-        if self.inputs_changed:
-            reply = QMessageBox.question(self, 'Değişiklikler Kaydedilmedi',
-                                         'Değişiklikler kaydedilmedi. Yeniden hesaplama yapılsın mı?',
-                                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            if reply == QMessageBox.Yes:
-                self.calc_pump()
-            else:
+        if self.inputs_changed or self.pump is None:
+            if self.calc_pump():
                 super().accept()
         else:
             super().accept()
