@@ -809,6 +809,7 @@ class ImpellerDialog(QDialog):
         self._refresh_all()
         if self.toolBox is not None:
             self.on_toolbox_page_changed(self.toolBox.currentIndex())
+        self._debug_assert_viewer_embedding()
 
     def _init_model_refs(self, imp1D, ind1D):
         self.sender_name = ""
@@ -1044,6 +1045,22 @@ class ImpellerDialog(QDialog):
             row, column, _, _ = layout.getItemPosition(index)
             layout.setRowStretch(row, 1)
             layout.setColumnStretch(column, 1)
+
+    def _debug_assert_viewer_embedding(self):
+        if os.environ.get("DEBUG_UI") != "1":
+            return
+        viewers = {
+            "viewer_meridional": self.viewer_meridional,
+            "viewer_beta": self.viewer_beta,
+            "viewer_thickness": self.viewer_thickness,
+            "viewer_leading_edges": self.viewer_leading_edges,
+            "viewer_trailing_edges": self.viewer_trailing_edges,
+        }
+        for name, viewer in viewers.items():
+            if viewer is None:
+                continue
+            assert viewer.parent() is not None, f"{name} has no parent"
+            assert not viewer.isWindow(), f"{name} is floating"
 
     def _read_beta_column(self, column):
         values = []
