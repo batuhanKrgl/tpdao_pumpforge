@@ -10,7 +10,7 @@ from traits.api import HasTraits, Instance
 from traitsui.api import View, Item
 
 from PyQt5.uic import loadUi
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QApplication, QMessageBox, QWidget, QHeaderView, QDoubleSpinBox, \
     QPushButton, QAbstractItemView, QMainWindow, QFileDialog, QLineEdit, QTableWidgetItem, QRadioButton, QSizePolicy, \
@@ -813,6 +813,12 @@ class ImpellerDialog(QDialog):
             self.on_toolbox_page_changed(self.toolBox.currentIndex())
         self._debug_assert_viewer_embedding()
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        if self.toolBox is not None:
+            self.on_toolbox_page_changed(self.toolBox.currentIndex())
+            self._schedule_redraw()
+
     def _init_model_refs(self, imp1D, ind1D):
         self.sender_name = ""
         if self.parent is not None and self.parent.sender() is not None:
@@ -1371,13 +1377,46 @@ class ImpellerDialog(QDialog):
             return
         self._clear_layout(layout)
         if widget is not None:
-            parent = widget.parentWidget()
-            if parent is not None:
-                parent_layout = parent.layout()
-                if parent_layout is not None:
-                    parent_layout.removeWidget(widget)
-            layout.addWidget(widget)
+            self._embed_viewer_in_layout(widget, layout)
             widget.setVisible(True)
+
+    def _embed_viewer_in_layout(self, widget, layout):
+        parent = widget.parentWidget()
+        if parent is not None:
+            parent_layout = parent.layout()
+            if parent_layout is not None:
+                parent_layout.removeWidget(widget)
+        target_parent = layout.parent()
+        if isinstance(target_parent, QWidget):
+            widget.setParent(target_parent)
+        layout.addWidget(widget)
+        widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+    def _schedule_redraw(self):
+        QTimer.singleShot(0, lambda: self._redraw_visible_viewers(retries=2))
+
+    def _redraw_visible_viewers(self, retries=1):
+        page_key = self._page_key_for_index(self.toolBox.currentIndex()) if self.toolBox is not None else None
+        viewers = []
+        if page_key == "meridional":
+            viewers = [self.viewer_meridional]
+        elif page_key == "beta":
+            viewers = [self.viewer_meridional, self.viewer_beta]
+        elif page_key == "thickness":
+            viewers = [self.viewer_meridional, self.viewer_thickness]
+        elif page_key == "edges":
+            viewers = [self.viewer_leading_edges, self.viewer_trailing_edges]
+
+        pending = False
+        for viewer in viewers:
+            if viewer is None or not viewer.isVisibleTo(self):
+                continue
+            if viewer.width() == 0 or viewer.height() == 0:
+                pending = True
+                continue
+            viewer.update_plot()
+        if pending and retries > 0:
+            QTimer.singleShot(50, lambda: self._redraw_visible_viewers(retries=retries - 1))
 
     def _set_layout_visible(self, layout, visible):
         if layout is None:
@@ -1451,6 +1490,7 @@ class ImpellerDialog(QDialog):
         self._update_plots_for_page(page_key)
         if enable_3d:
             self._update_3d_for_page()
+        self._schedule_redraw()
 
     def _apply_2d_visibility(self, page_key):
         viewers = {
