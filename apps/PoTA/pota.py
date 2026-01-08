@@ -1464,8 +1464,6 @@ class ImpellerDialog(QDialog):
         if page_key == "meridional":
             self._set_slot_widget(upper_layout, self.viewer_meridional)
             self._clear_layout(lower_layout)
-            self._set_layout_visible(lower_layout, False)
-            self._set_widget_visible(self.dockWidget_rz, False)
             self._set_widget_visible(self.dockWidget_3d, False)
         elif page_key == "beta":
             self._set_slot_widget(upper_layout, self.viewer_meridional)
