@@ -1,0 +1,17 @@
+{
+  "rpm": 21000,
+  "mass_flow": 60,
+  "outlet_pressure_bar": 95.0,
+  "inlet_pressure_bar": 5.0,
+  "inlet_angle_deg": 90.0,
+  "inlet_diameter_mm": 84.0,
+  "outlet_diameter_mm": 50.0,
+  "second_stage": false,
+  "double_suction": true,
+  "fluid": {
+    "name": "LOX@90K",
+    "density": 1141.0,
+    "dynamicViscosity": 0.0002,
+    "vaporPressure": 101325.0
+  }
+}
