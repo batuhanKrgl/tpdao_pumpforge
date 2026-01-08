@@ -115,19 +115,30 @@ class PointCloudGeometry:
 
 
 class PointCloudLine:
-    def __init__(self, points=None, opacity=1, color=(1, 0, 0)):
+    def __init__(self, points=None, opacity=1, color=(1, 0, 0), tube_radius=0.0002):
         self.line = None
         self.opacity = opacity
         self.color = color
+        self.tube_radius = tube_radius
         self.points = points
         self.first_time = True
 
     def set_opacity(self, opacity):
         self.line.actor.property.opacity = opacity
 
+    def safe_set_opacity(self, opacity):
+        self.opacity = opacity
+        if self.line is not None:
+            self.line.actor.property.opacity = opacity
+
+    def set_color(self, color):
+        self.color = color
+        if self.line is not None:
+            self.line.actor.property.color = color
+
     def plot_line(self):
         x, y, z = self.points[:, 0], self.points[:, 1], self.points[:, 2]
-        self.line = mlab.plot3d(x, y, z, opacity=self.opacity, color=self.color, tube_radius=0.0002)
+        self.line = mlab.plot3d(x, y, z, opacity=self.opacity, color=self.color, tube_radius=self.tube_radius)
         self.first_time = False
 
     def update_line(self):
@@ -735,6 +746,17 @@ class PotaSetupDialog(QDialog):
 
 
 class ImpellerDialog(QDialog):
+    THEME_3D = {
+        "camber_hi": {"color": (1.0, 0.3, 0.0), "opacity": 1.0},
+        "circles": {"color": (0.4, 0.4, 0.4), "opacity": 0.6},
+        "pressure": {"color": (0.2, 0.5, 1.0), "opacity": 1.0},
+        "suction": {"color": (0.2, 1.0, 0.4), "opacity": 1.0},
+        "leading": {"color": (1.0, 0.0, 0.0), "opacity": 1.0},
+        "trailing": {"color": (0.0, 0.0, 0.0), "opacity": 1.0},
+        "meridional": {"color": (0.5, 0.5, 0.5), "opacity": 0.25},
+        "normal": {"opacity": 0.25},
+        "hidden": {"opacity": 0.0},
+    }
     UI_NAME_MAP = {
         "toolBox": ["toolBox"],
         "page_meridional": ["page_meridional", "page_meridional_inputs"],
@@ -769,6 +791,8 @@ class ImpellerDialog(QDialog):
         self._init_plots()
         self._init_3d()
         self._refresh_all()
+        if self.toolBox is not None:
+            self.switch_page(self.toolBox.currentIndex())
 
     def _init_model_refs(self, imp1D, ind1D):
         self.sender_name = ""
@@ -930,7 +954,7 @@ class ImpellerDialog(QDialog):
             self.update_table_view()
 
         if self.toolBox is not None:
-            self.toolBox.currentChanged.connect(self.switch_plots)
+            self.toolBox.currentChanged.connect(self.switch_page)
 
         if self.pushButton_ok is not None:
             self.pushButton_ok.clicked.connect(self.accept)
@@ -1047,10 +1071,14 @@ class ImpellerDialog(QDialog):
             self.viewer_3D.add_line(self.blade_tip)
 
         self.blade_lines = []
+        self.blade_highlight_lines = []
         for blade_line in self.rotor3D.guides_dict["blade_guides"]:
             self.blade_lines.append(PointCloudLine(blade_line))
+            self.blade_highlight_lines.append(
+                PointCloudLine(blade_line, tube_radius=0.00035, color=self.THEME_3D["camber_hi"]["color"]))
             if self.viewer_3D is not None:
                 self.viewer_3D.add_line(self.blade_lines[-1])
+                self.viewer_3D.add_line(self.blade_highlight_lines[-1])
 
         self.impeller_hub_exit = PointCloudLine(self._circle_points(self.rotor3D.hub.r[-1], self.rotor3D.hub.z[-1]))
         self.impeller_hub_inlet = PointCloudLine(self._circle_points(self.rotor3D.hub.r[0], self.rotor3D.hub.z[0]))
@@ -1088,6 +1116,22 @@ class ImpellerDialog(QDialog):
                 if self.viewer_3D is not None:
                     self.viewer_3D.add_line(self.trailing_lines[-1])
 
+        self.layers_3d = {
+            "circles": [
+                self.impeller_hub_exit,
+                self.impeller_hub_inlet,
+                self.impeller_tip_exit,
+                self.impeller_tip_inlet,
+            ],
+            "camber": self.blade_lines,
+            "camber_hi": self.blade_highlight_lines,
+            "pressure": self.pressure_lines,
+            "suction": self.suction_lines,
+            "leading": self.leading_lines,
+            "trailing": self.trailing_lines,
+            "meridional": [self.hub_merid, self.tip_merid, self.blade_hub, self.blade_tip],
+        }
+
     def _refresh_all(self):
         self.rotor3D.set_meridional_geometry()
         self.rotor3D.set_beta_array()
@@ -1111,9 +1155,127 @@ class ImpellerDialog(QDialog):
         ])
 
     def _set_line_visibility(self, line, visible):
-        line.opacity = 1.0 if visible else 0.0
-        if line.line is not None:
-            line.set_opacity(line.opacity)
+        line.safe_set_opacity(1.0 if visible else 0.0)
+
+    def _set_layer_style(self, name, color=None, opacity=None):
+        for line in self.layers_3d.get(name, []):
+            if color is not None:
+                line.set_color(color)
+            if opacity is not None:
+                line.safe_set_opacity(opacity)
+
+    def _set_layer_visible(self, name, visible, opacity=None):
+        target_opacity = opacity if opacity is not None else self.THEME_3D["normal"]["opacity"]
+        for line in self.layers_3d.get(name, []):
+            line.safe_set_opacity(target_opacity if visible else self.THEME_3D["hidden"]["opacity"])
+
+    def _hide_all_layers(self):
+        for layer_name in self.layers_3d:
+            self._set_layer_visible(layer_name, False)
+
+    def _page_key_for_index(self, index):
+        if self.toolBox is None:
+            return index
+        page = self.toolBox.widget(index)
+        page_name = page.objectName().lower() if page is not None else ""
+        page_title = self.toolBox.itemText(index).lower()
+        if "meridional" in page_name or "meridional" in page_title:
+            return "meridional"
+        if "beta" in page_name or "beta" in page_title:
+            return "beta"
+        if "thickness" in page_name or "thickness" in page_title:
+            return "thickness"
+        if "edge" in page_name or "edge" in page_title or "leading" in page_name or "trailing" in page_name:
+            return "edges"
+        return ["meridional", "beta", "thickness", "edges"][index] if index in range(4) else index
+
+    def _apply_2d_visibility(self, page_key):
+        viewers = {
+            "meridional": self.viewer_meridional,
+            "beta": self.viewer_beta,
+            "thickness": self.viewer_thickness,
+            "leading": self.viewer_leading_edges,
+            "trailing": self.viewer_trailing_edges,
+        }
+        for viewer in viewers.values():
+            if viewer is not None:
+                viewer.setVisible(False)
+        if page_key == "meridional":
+            if self.viewer_meridional is not None:
+                self.viewer_meridional.setVisible(True)
+        elif page_key == "beta":
+            if self.viewer_meridional is not None:
+                self.viewer_meridional.setVisible(True)
+            if self.viewer_beta is not None:
+                self.viewer_beta.setVisible(True)
+        elif page_key == "thickness":
+            if self.viewer_meridional is not None:
+                self.viewer_meridional.setVisible(True)
+            if self.viewer_thickness is not None:
+                self.viewer_thickness.setVisible(True)
+        elif page_key == "edges":
+            if self.viewer_leading_edges is not None:
+                self.viewer_leading_edges.setVisible(True)
+            if self.viewer_trailing_edges is not None:
+                self.viewer_trailing_edges.setVisible(True)
+
+    def _apply_view_mode(self, page_key):
+        self._hide_all_layers()
+        self._set_layer_style("meridional", **self.THEME_3D["meridional"])
+
+        if page_key == "beta":
+            self._set_layer_style("circles", **self.THEME_3D["circles"])
+            self._set_layer_visible("circles", True, self.THEME_3D["circles"]["opacity"])
+            self._set_layer_visible("meridional", True, self.THEME_3D["meridional"]["opacity"])
+            self._set_layer_visible("camber", True, self.THEME_3D["normal"]["opacity"])
+            self._set_layer_style("camber_hi", **self.THEME_3D["camber_hi"])
+            self._set_layer_visible("camber_hi", True, self.THEME_3D["camber_hi"]["opacity"])
+        elif page_key == "thickness":
+            self._set_layer_style("pressure", **self.THEME_3D["pressure"])
+            self._set_layer_style("suction", **self.THEME_3D["suction"])
+            self._set_layer_visible("pressure", True, self.THEME_3D["pressure"]["opacity"])
+            self._set_layer_visible("suction", True, self.THEME_3D["suction"]["opacity"])
+            self._set_layer_visible("circles", True, self.THEME_3D["normal"]["opacity"])
+            self._set_layer_visible("meridional", True, self.THEME_3D["meridional"]["opacity"])
+        elif page_key == "edges":
+            self._set_layer_style("leading", **self.THEME_3D["leading"])
+            self._set_layer_style("trailing", **self.THEME_3D["trailing"])
+            self._set_layer_visible("leading", True, self.THEME_3D["leading"]["opacity"])
+            self._set_layer_visible("trailing", True, self.THEME_3D["trailing"]["opacity"])
+            self._set_layer_visible("circles", True, self.THEME_3D["normal"]["opacity"])
+            self._set_layer_visible("meridional", True, self.THEME_3D["meridional"]["opacity"])
+
+    def _apply_3d_visibility_and_layers(self, page_key):
+        if self.viewer_3D is None:
+            return False
+        enable_3d = page_key != "meridional"
+        self.viewer_3D.setVisible(enable_3d)
+        self.viewer_3D.setEnabled(enable_3d)
+        if not enable_3d:
+            return False
+        self._apply_view_mode(page_key)
+        return True
+
+    def _update_plots_for_page(self, page_key):
+        if page_key in ["meridional", "beta", "thickness"]:
+            self.update_meridional_plot()
+        if page_key == "beta":
+            self.update_beta_plot()
+        elif page_key == "thickness":
+            self.update_thickness_plot()
+        elif page_key == "edges":
+            self.update_leading_edge_plot()
+
+    def _update_3d_for_page(self):
+        self.plot_blade()
+
+    def switch_page(self, index):
+        page_key = self._page_key_for_index(index)
+        self._apply_2d_visibility(page_key)
+        enable_3d = self._apply_3d_visibility_and_layers(page_key)
+        self._update_plots_for_page(page_key)
+        if enable_3d:
+            self._update_3d_for_page()
 
     def switch_plots(self, index):
         self.update_meridional_plot()
@@ -1513,6 +1675,8 @@ class ImpellerDialog(QDialog):
         for i, blade_line in enumerate(self.rotor3D.guides_dict["blade_guides"]):
             if i < len(self.blade_lines):
                 self.blade_lines[i].points = blade_line
+            if i < len(self.blade_highlight_lines):
+                self.blade_highlight_lines[i].points = blade_line
 
         for i, (pressure_line, suction_line) in enumerate(
                 zip(self.rotor3D.foil_dict["pressure"]["curves"], self.rotor3D.foil_dict["suction"]["curves"])):
