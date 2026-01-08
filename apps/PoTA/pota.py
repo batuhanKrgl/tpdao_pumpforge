@@ -14,7 +14,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QApplication, QMessageBox, QWidget, QHeaderView, QDoubleSpinBox, \
     QPushButton, QAbstractItemView, QMainWindow, QFileDialog, QLineEdit, QTableWidgetItem, QRadioButton, QSizePolicy, \
-    QGridLayout
+    QGridLayout, QBoxLayout
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -1005,17 +1005,7 @@ class ImpellerDialog(QDialog):
         self.tableWidget_beta.verticalHeader().setVisible(False)
         self.tableWidget_beta.horizontalHeader().setStretchLastSection(True)
         self.tableWidget_beta.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.tableWidget_beta.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        layout = self.tableWidget_beta.parentWidget().layout() if self.tableWidget_beta.parentWidget() else None
-        if isinstance(layout, QGridLayout):
-            index = layout.indexOf(self.tableWidget_beta)
-            if index >= 0:
-                row, _, rowspan, _ = layout.getItemPosition(index)
-                layout.setRowStretch(row, 1)
-                if rowspan > 1:
-                    layout.setRowStretch(row + rowspan - 1, 1)
-        if layout is not None:
-            layout.setStretchFactor(self.tableWidget_beta, 1)
+        self._expand_in_parent_layout(self.tableWidget_beta)
 
     def _handle_beta_mode_changed(self):
         if self._beta_table_updating:
@@ -1035,6 +1025,25 @@ class ImpellerDialog(QDialog):
             item = QTableWidgetItem("")
             self.tableWidget_beta.setItem(row, column, item)
         return item
+
+    def _expand_in_parent_layout(self, widget):
+        widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        parent = widget.parentWidget()
+        if parent is None:
+            return
+        layout = parent.layout()
+        if layout is None:
+            return
+        if isinstance(layout, QBoxLayout):
+            layout.setStretchFactor(widget, 1)
+            return
+        if isinstance(layout, QGridLayout):
+            index = layout.indexOf(widget)
+            if index == -1:
+                return
+            row, column, _, _ = layout.getItemPosition(index)
+            layout.setRowStretch(row, 1)
+            layout.setColumnStretch(column, 1)
 
     def _read_beta_column(self, column):
         values = []
