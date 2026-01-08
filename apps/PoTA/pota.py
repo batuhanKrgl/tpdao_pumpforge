@@ -13,7 +13,7 @@ from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QApplication, QMessageBox, QWidget, QHeaderView, QDoubleSpinBox, \
-    QPushButton, QAbstractItemView, QMainWindow, QFileDialog, QLineEdit, QTableWidgetItem, QRadioButton
+    QPushButton, QAbstractItemView, QMainWindow, QFileDialog, QLineEdit, QTableWidgetItem, QRadioButton, QSizePolicy
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
@@ -314,12 +314,13 @@ class Polygon:
 
 
 class GeometryPlot(QWidget):
-    def __init__(self, parent=None, got_axline=True, rz=True):
+    def __init__(self, parent=None, got_axline=True, rz=True, aspect_mode="equal"):
         super(GeometryPlot, self).__init__(parent)
         self.figure = Figure()
         # self.figure.tight_layout(pad=1, rect=[-0.5,-0.5,1.5,1.5])
         self.figure.patch.set_alpha(0)
         self.canvas = FigureCanvas(self.figure)
+        self.canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.canvas.setStyleSheet("background:transparent;")
         self.canvas.setAttribute(Qt.WA_TranslucentBackground, True)
         layout = QVBoxLayout(self)
@@ -341,7 +342,11 @@ class GeometryPlot(QWidget):
             # self.ax.axline((0, 0), (1, 0), linestyle="--")
             # self.ax.axline((0, 0), (0, 1), linestyle="--")
         self.ax.grid(linestyle='--', linewidth=0.5)
-        self.ax.set_aspect('equal', "datalim")
+        self.aspect_mode = aspect_mode
+        if self.aspect_mode == "equal":
+            self.ax.set_aspect('equal', "datalim")
+        elif self.aspect_mode == "auto":
+            self.ax.set_aspect('auto')
         self.lines = []
 
     def update_plot(self):
@@ -746,6 +751,7 @@ class PotaSetupDialog(QDialog):
 
 
 class ImpellerDialog(QDialog):
+    DEBUG_LAYOUTS = False
     THEME_3D = {
         "camber_hi": {"color": (1.0, 0.3, 0.0), "opacity": 1.0},
         "circles": {"color": (0.4, 0.4, 0.4), "opacity": 0.6},
@@ -767,6 +773,8 @@ class ImpellerDialog(QDialog):
         "gridLayout_upper_3": ["gridLayout_upper_3", "gridLayout_lower_3", "gridLayout_upper_trailing"],
         "gridLayout_3d": ["gridLayout_3d"],
         "stackedWidget": ["stackedWidget", "stackedWidget_lower", "stackedWidget_upper"],
+        "stackedWidget_upper": ["stackedWidget_upper"],
+        "stackedWidget_lower": ["stackedWidget_lower"],
         "stackedWidget_leading": ["stackedWidget_leading"],
         "stackedWidget_trailing": ["stackedWidget_trailing"],
         "tableWidget_beta": ["tableWidget_beta"],
@@ -834,6 +842,8 @@ class ImpellerDialog(QDialog):
         self.gridLayout_upper_3 = self._resolve_layout("gridLayout_upper_3")
         self.gridLayout_3d = self._resolve_layout("gridLayout_3d")
         self.stackedWidget = self._resolve_widget("stackedWidget")
+        self.stackedWidget_upper = self._resolve_widget("stackedWidget_upper")
+        self.stackedWidget_lower = self._resolve_widget("stackedWidget_lower")
         self.stackedWidget_leading = self._resolve_widget("stackedWidget_leading")
         self.stackedWidget_trailing = self._resolve_widget("stackedWidget_trailing")
         self.tableWidget_beta = self._resolve_widget("tableWidget_beta")
@@ -962,25 +972,40 @@ class ImpellerDialog(QDialog):
             self.pushButton_cancel.clicked.connect(self.reject)
 
     def _init_plots(self):
-        self.viewer_meridional = GeometryPlot(self, got_axline=False)
-        if self.gridLayout_upper_1 is not None:
-            self.gridLayout_upper_1.addWidget(self.viewer_meridional)
+        required_layouts = {
+            "gridLayout_upper_1": self.gridLayout_upper_1,
+            "gridLayout_upper_2": self.gridLayout_upper_2,
+            "gridLayout_lower_1": self.gridLayout_lower_1,
+            "gridLayout_lower_2": self.gridLayout_lower_2,
+        }
+        missing = [name for name, layout in required_layouts.items() if layout is None]
+        if missing:
+            raise RuntimeError(f"ImpellerDialog missing required plot layouts: {', '.join(missing)}")
 
-        self.viewer_beta = GeometryPlot(self, rz=False)
-        if self.gridLayout_lower_1 is not None:
-            self.gridLayout_lower_1.addWidget(self.viewer_beta)
+        self.viewer_meridional = GeometryPlot(self, got_axline=False, aspect_mode="equal")
+        self.gridLayout_lower_1.addWidget(self.viewer_meridional)
+
+        self.viewer_beta = GeometryPlot(self, rz=False, aspect_mode="auto")
+        self.gridLayout_upper_1.addWidget(self.viewer_beta)
 
         self.viewer_thickness = GeometryPlot(self, rz=False)
-        if self.gridLayout_upper_2 is not None:
-            self.gridLayout_upper_2.addWidget(self.viewer_thickness)
+        self.gridLayout_upper_2.addWidget(self.viewer_thickness)
 
         self.viewer_leading_edges = GeometryPlot(self, rz=False)
-        if self.gridLayout_lower_2 is not None:
-            self.gridLayout_lower_2.addWidget(self.viewer_leading_edges)
+        self.gridLayout_lower_2.addWidget(self.viewer_leading_edges)
 
         self.viewer_trailing_edges = GeometryPlot(self, rz=False)
-        if self.gridLayout_upper_3 is not None:
+        if self.gridLayout_upper_2 is not None:
+            self.gridLayout_upper_2.addWidget(self.viewer_trailing_edges)
+        elif self.gridLayout_upper_3 is not None:
             self.gridLayout_upper_3.addWidget(self.viewer_trailing_edges)
+
+        if self.DEBUG_LAYOUTS:
+            self._debug_viewer_parent("viewer_meridional", self.viewer_meridional)
+            self._debug_viewer_parent("viewer_beta", self.viewer_beta)
+            self._debug_viewer_parent("viewer_thickness", self.viewer_thickness)
+            self._debug_viewer_parent("viewer_leading_edges", self.viewer_leading_edges)
+            self._debug_viewer_parent("viewer_trailing_edges", self.viewer_trailing_edges)
 
         self.hub_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="-", label='Hub')
         self.hub_node_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="dashed", linewidth=0.5, ms=3)
@@ -1154,6 +1179,20 @@ class ImpellerDialog(QDialog):
             z_value * np.ones_like(circle)
         ])
 
+    def _debug_viewer_parent(self, name, viewer):
+        if viewer is None:
+            print(f"ImpellerDialog layout debug: {name} is None")
+            return
+        chain = []
+        current = viewer
+        while current is not None:
+            if hasattr(current, "objectName"):
+                chain.append(current.objectName() or current.__class__.__name__)
+            else:
+                chain.append(current.__class__.__name__)
+            current = current.parent()
+        print(f"ImpellerDialog layout debug: {name} parent chain: {' -> '.join(chain)}")
+
     def _set_line_visibility(self, line, visible):
         line.safe_set_opacity(1.0 if visible else 0.0)
 
@@ -1219,6 +1258,22 @@ class ImpellerDialog(QDialog):
             if self.viewer_trailing_edges is not None:
                 self.viewer_trailing_edges.setVisible(True)
 
+    def _apply_stack_indexes(self, page_key):
+        if self.stackedWidget_upper is not None:
+            if page_key == "beta":
+                self.stackedWidget_upper.setCurrentIndex(0)
+            elif page_key in ["thickness", "edges"]:
+                self.stackedWidget_upper.setCurrentIndex(1)
+            else:
+                self.stackedWidget_upper.setCurrentIndex(0)
+        if self.stackedWidget_lower is not None:
+            if page_key == "edges":
+                self.stackedWidget_lower.setCurrentIndex(2)
+            elif page_key in ["meridional", "beta", "thickness"]:
+                self.stackedWidget_lower.setCurrentIndex(1)
+            else:
+                self.stackedWidget_lower.setCurrentIndex(0)
+
     def _apply_view_mode(self, page_key):
         self._hide_all_layers()
         self._set_layer_style("meridional", **self.THEME_3D["meridional"])
@@ -1272,6 +1327,7 @@ class ImpellerDialog(QDialog):
     def switch_page(self, index):
         page_key = self._page_key_for_index(index)
         self._apply_2d_visibility(page_key)
+        self._apply_stack_indexes(page_key)
         enable_3d = self._apply_3d_visibility_and_layers(page_key)
         self._update_plots_for_page(page_key)
         if enable_3d:
