@@ -132,6 +132,8 @@ class PointCloudLine:
 
     def update_line(self):
         x, y, z = self.points[:, 0], self.points[:, 1], self.points[:, 2]
+        self.line.actor.property.opacity = self.opacity
+        self.line.actor.property.color = self.color
         self.line.mlab_source.set(x=x, y=y, z=z)
 
 
@@ -1105,8 +1107,13 @@ class ImpellerDialog(QDialog):
         return np.column_stack([
             radius * np.cos(circle),
             radius * np.sin(circle),
-            np.full_like(circle, z_value)
+            z_value * np.ones_like(circle)
         ])
+
+    def _set_line_visibility(self, line, visible):
+        line.opacity = 1.0 if visible else 0.0
+        if line.line is not None:
+            line.set_opacity(line.opacity)
 
     def switch_plots(self, index):
         self.update_meridional_plot()
@@ -1281,8 +1288,6 @@ class ImpellerDialog(QDialog):
         self.update_meridional_plot()
 
     def switching_widgets(self):
-        if not hasattr(self.hub_merid, "set_linestyle"):
-            return
         direction = 1
         if self.sender().objectName().split("_")[-1] != "next":
             direction = -1
@@ -1302,57 +1307,45 @@ class ImpellerDialog(QDialog):
         if new_index == 0:
             for line in (self.leading_lines + self.trailing_lines + self.blade_lines + [self.blade_hub] +
                          [self.blade_tip] + self.pressure_lines + self.suction_lines):
-                line.set_linestyle("None")
-            self.hub_merid.set_linestyle("-")
-            self.tip_merid.set_linestyle("-")
-            self.impeller_hub_inlet.set_linestyle("--")
-            self.impeller_hub_exit.set_linestyle("--")
-            self.impeller_tip_exit.set_linestyle("--")
-            self.impeller_tip_inlet.set_linestyle("--")
+                self._set_line_visibility(line, False)
+            for line in [self.hub_merid, self.tip_merid, self.impeller_hub_inlet, self.impeller_hub_exit,
+                         self.impeller_tip_exit, self.impeller_tip_inlet]:
+                self._set_line_visibility(line, True)
             self.stackedWidget.setCurrentIndex(index + direction)
             self.pushButton_before.setEnabled(False)
 
         if new_index == 1:
             for line in self.leading_lines + self.trailing_lines + self.pressure_lines + self.suction_lines:
-                line.set_linestyle("None")
+                self._set_line_visibility(line, False)
             for line in self.blade_lines + [self.blade_hub] + [self.blade_tip]:
-                line.set_linestyle("--")
-            self.hub_merid.set_linestyle("-")
-            self.tip_merid.set_linestyle("-")
-            self.impeller_hub_inlet.set_linestyle("--")
-            self.impeller_hub_exit.set_linestyle("--")
-            self.impeller_tip_exit.set_linestyle("--")
-            self.impeller_tip_inlet.set_linestyle("--")
+                self._set_line_visibility(line, True)
+            for line in [self.hub_merid, self.tip_merid, self.impeller_hub_inlet, self.impeller_hub_exit,
+                         self.impeller_tip_exit, self.impeller_tip_inlet]:
+                self._set_line_visibility(line, True)
             self.stackedWidget.setCurrentIndex(index + direction)
 
         if new_index == 2:
             for line in self.leading_lines + self.trailing_lines + self.blade_lines:
-                line.set_linestyle("None")
+                self._set_line_visibility(line, False)
             for line in self.pressure_lines + self.suction_lines:
-                line.set_linestyle("-")
+                self._set_line_visibility(line, True)
             for line in [self.blade_hub] + [self.blade_tip]:
-                line.set_linestyle("--")
-            self.hub_merid.set_linestyle("-")
-            self.tip_merid.set_linestyle("-")
-            self.impeller_hub_inlet.set_linestyle("--")
-            self.impeller_hub_exit.set_linestyle("--")
-            self.impeller_tip_exit.set_linestyle("--")
-            self.impeller_tip_inlet.set_linestyle("--")
+                self._set_line_visibility(line, True)
+            for line in [self.hub_merid, self.tip_merid, self.impeller_hub_inlet, self.impeller_hub_exit,
+                         self.impeller_tip_exit, self.impeller_tip_inlet]:
+                self._set_line_visibility(line, True)
             self.stackedWidget.setCurrentIndex(index + direction)
 
         if new_index in [3, 4]:
             for line in self.blade_lines:
-                line.set_linestyle("None")
+                self._set_line_visibility(line, False)
             for line in self.leading_lines + self.trailing_lines + self.pressure_lines + self.suction_lines:
-                line.set_linestyle("-")
+                self._set_line_visibility(line, True)
             for line in [self.blade_hub] + [self.blade_tip]:
-                line.set_linestyle("--")
-            self.hub_merid.set_linestyle("-")
-            self.tip_merid.set_linestyle("-")
-            self.impeller_hub_inlet.set_linestyle("--")
-            self.impeller_hub_exit.set_linestyle("--")
-            self.impeller_tip_exit.set_linestyle("--")
-            self.impeller_tip_inlet.set_linestyle("--")
+                self._set_line_visibility(line, True)
+            for line in [self.hub_merid, self.tip_merid, self.impeller_hub_inlet, self.impeller_hub_exit,
+                         self.impeller_tip_exit, self.impeller_tip_inlet]:
+                self._set_line_visibility(line, True)
             self.stackedWidget.setCurrentIndex(index + direction)
             if new_index == 4:
                 self.pushButton_next.setEnabled(False)
