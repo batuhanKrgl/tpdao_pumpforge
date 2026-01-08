@@ -22,7 +22,6 @@ from matplotlib import image
 import matplotlib.colors as colors
 from matplotlib.patches import Polygon
 from matplotlib.lines import Line2D
-from matplotlib.collections import PolyCollection, PathCollection
 
 from src.Pump import pump1D
 from src.Pump.pump3D import Pump3D
@@ -31,7 +30,6 @@ from src.fluid import Fluid
 from src.Utility.plot_on_cordier import cordier_plot_on
 from src.Utility.resource_call import resource_path
 from src.Pump.pump1D import Pump
-from src.Utility.UI_functions import is_line_edits_empty
 
 
 class PointCloudGeometry:
@@ -190,6 +188,76 @@ class Visualization(HasTraits):
     scene = Instance(MlabSceneModel, ())
     view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene), show_label=False),
                 width=800, height=600, resizable=True)
+
+
+def parse_float(text: str, field_name: str) -> float:
+    cleaned_text = text.strip().replace(",", ".")
+    try:
+        return float(cleaned_text)
+    except ValueError as exc:
+        raise ValueError(f"Invalid value for field: {field_name}") from exc
+
+
+def require_fields(dialog: QDialog, names: list) -> dict:
+    missing = []
+    values = {}
+    for name in names:
+        line_edit = dialog.findChild(QLineEdit, name)
+        if line_edit is None or not line_edit.text().strip():
+            missing.append(name)
+            if line_edit is not None:
+                line_edit.setStyleSheet("background-color: pink;")
+            continue
+        line_edit.setStyleSheet("")
+        values[name] = line_edit.text()
+    if missing:
+        raise ValueError(f"Missing required fields: {', '.join(missing)}")
+    return values
+
+
+def build_pump_inputs_from_ui(dialog: QDialog):
+    required_fields = [
+        "lineEdit_revolution",
+        "lineEdit_mass_flow",
+        "lineEdit_outlet_pressure",
+        "lineEdit_inlet_pressure",
+        "lineEdit_inlet_angle",
+        "lineEdit_inlet_diameter",
+        "lineEdit_outlet_diameter",
+        "lineEdit_density",
+        "lineEdit_dynamicViscosity",
+        "lineEdit_vaporPressure",
+    ]
+    values = require_fields(dialog, required_fields)
+
+    rpm = parse_float(values["lineEdit_revolution"], "lineEdit_revolution")
+    mass_flow = parse_float(values["lineEdit_mass_flow"], "lineEdit_mass_flow")
+    outlet_pressure_bar = parse_float(values["lineEdit_outlet_pressure"], "lineEdit_outlet_pressure")
+    inlet_pressure_bar = parse_float(values["lineEdit_inlet_pressure"], "lineEdit_inlet_pressure")
+    inlet_angle = parse_float(values["lineEdit_inlet_angle"], "lineEdit_inlet_angle")
+    inlet_diameter_mm = parse_float(values["lineEdit_inlet_diameter"], "lineEdit_inlet_diameter")
+    outlet_diameter_mm = parse_float(values["lineEdit_outlet_diameter"], "lineEdit_outlet_diameter")
+    density = parse_float(values["lineEdit_density"], "lineEdit_density")
+    dynamic_viscosity = parse_float(values["lineEdit_dynamicViscosity"], "lineEdit_dynamicViscosity")
+    vapor_pressure = parse_float(values["lineEdit_vaporPressure"], "lineEdit_vaporPressure")
+
+    pump_dict = {
+        "mass_flow": mass_flow,
+        "pressure_required": outlet_pressure_bar * 100000,
+        "inlet_pressure": inlet_pressure_bar * 100000,
+        "alpha": inlet_angle,
+        "double_suction": dialog.checkBox_double_suction.isChecked(),
+        "second_stage": dialog.checkBox_second_stage.isChecked(),
+        "inlet_radius": inlet_diameter_mm / 2000,
+        "outlet_radius": outlet_diameter_mm / 2000,
+        "shaft_radius": None,
+    }
+    fluid_props = {
+        "density": density,
+        "dynamicViscosity": dynamic_viscosity,
+        "vaporPressure": vapor_pressure,
+    }
+    return rpm, pump_dict, fluid_props
 
 
 class MayaviQWidget(QWidget):
@@ -565,8 +633,8 @@ class PotaSetupDialog(QDialog):
     def import_pump(self):
         # import bypass için aşağıdaki iki satırı yorumdan çıkar/ yoruma ekle.
         file_path = "C:\\Users\\batuhan.koroglu\\Desktop\\TPDAO\\apps\\TuKTA\\test-save\\250kN_70bar-20240813-073438\\250kN_70bar-20240813-073438-21000rpm-oxidizer.pump"
-        # file_path, _ = QFileDialog.getOpenFileName(parent=self, caption="Select Pump File", directory="./",
-        #                                            filter="Pump 1D File (*.pump)")
+        file_path, _ = QFileDialog.getOpenFileName(parent=self, caption="Select Pump File", directory="./",
+                                                   filter="Pump 1D File (*.pump)")
         if file_path:
             with open(file_path, "rb") as file:
                 pump = pickle.load(file)
@@ -582,10 +650,9 @@ class PotaSetupDialog(QDialog):
             self.checkBox_second_stage.setChecked(pump.is_second_stage)
             self.checkBox_double_suction.setChecked(pump.is_double_suction)
             self.comboBox.setCurrentText(pump.fluid.name)
+            self.handle_combo_box_change(pump.fluid.name)
 
             for line_edit in [self.lineEdit_density, self.lineEdit_dynamicViscosity, self.lineEdit_vaporPressure]:
-                line_edit.setEnabled(False)
-                line_edit.setStyleSheet("")
                 line_edit.setText(str(getattr(pump.fluid, line_edit.objectName().split("_")[-1])))
 
             self.pump = pump
@@ -594,24 +661,20 @@ class PotaSetupDialog(QDialog):
             self.inputs_changed = False
 
     def calc_pump(self):
-        if not is_line_edits_empty(self):
-            pump_dict = {
-                "mass_flow": float(self.lineEdit_mass_flow.text()),
-                "pressure_required": float(self.lineEdit_outlet_pressure.text()),
-                "inlet_pressure": float(self.lineEdit_inlet_pressure.text()),
-                "alpha": float(self.lineEdit_inlet_angle.text()),
-                "double_suction": self.checkBox_second_stage.isChecked(),
-                "second_stage": self.checkBox_second_stage.isChecked(),
-                "inlet_radius": float(self.lineEdit_inlet_diameter.text()),
-                "outlet_radius": float(self.lineEdit_outlet_diameter.text())
-            }
-            self.fluid.update_properties("density", float(self.lineEdit_density.text()))
-            self.fluid.update_properties("vaporPressure", float(self.lineEdit_vaporPressure.text()))
-            self.fluid.update_properties("dynamicViscosity", float(self.lineEdit_dynamicViscosity.text()))
-            self.pump = Pump(rpm=float(self.lineEdit_revolution.text()), pump_dict=pump_dict, fluid=self.fluid)
-            self.update_table()
-            self.plot_cordier()
-            self.inputs_changed = False
+        try:
+            rpm, pump_dict, fluid_props = build_pump_inputs_from_ui(self)
+        except ValueError as exc:
+            QMessageBox.warning(self, "Geçersiz Giriş", str(exc))
+            return False
+
+        self.fluid.update_properties("density", fluid_props["density"])
+        self.fluid.update_properties("vaporPressure", fluid_props["vaporPressure"])
+        self.fluid.update_properties("dynamicViscosity", fluid_props["dynamicViscosity"])
+        self.pump = Pump(rpm=rpm, pump_dict=pump_dict, fluid=self.fluid)
+        self.update_table()
+        self.plot_cordier()
+        self.inputs_changed = False
+        return True
 
     def handle_combo_box_change(self, fluid_name):
         if fluid_name in [os.path.splitext(f)[0] for f in os.listdir(resource_path("resource/fluids/oxidizer/"))]:
@@ -636,13 +699,8 @@ class PotaSetupDialog(QDialog):
         self.inputs_changed = True
 
     def accept(self):
-        if self.inputs_changed:
-            reply = QMessageBox.question(self, 'Değişiklikler Kaydedilmedi',
-                                         'Değişiklikler kaydedilmedi. Yeniden hesaplama yapılsın mı?',
-                                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            if reply == QMessageBox.Yes:
-                self.calc_pump()
-            else:
+        if self.inputs_changed or self.pump is None:
+            if self.calc_pump():
                 super().accept()
         else:
             super().accept()
@@ -675,127 +733,233 @@ class PotaSetupDialog(QDialog):
 
 
 class ImpellerDialog(QDialog):
+    UI_NAME_MAP = {
+        "toolBox": ["toolBox"],
+        "page_meridional": ["page_meridional", "page_meridional_inputs"],
+        "gridLayout_upper_1": ["gridLayout_upper_1", "gridLayout_rz", "gridLayout_upper_meridional"],
+        "gridLayout_lower_1": ["gridLayout_lower_1", "gridLayout_xy", "gridLayout_lower_beta"],
+        "gridLayout_upper_2": ["gridLayout_upper_2", "gridLayout_upper_thickness"],
+        "gridLayout_lower_2": ["gridLayout_lower_2", "gridLayout_lower_edges"],
+        "gridLayout_upper_3": ["gridLayout_upper_3", "gridLayout_lower_3", "gridLayout_upper_trailing"],
+        "gridLayout_3d": ["gridLayout_3d"],
+        "stackedWidget": ["stackedWidget", "stackedWidget_lower", "stackedWidget_upper"],
+        "stackedWidget_leading": ["stackedWidget_leading"],
+        "stackedWidget_trailing": ["stackedWidget_trailing"],
+        "tableWidget_beta": ["tableWidget_beta"],
+        "comboBox_leading": ["comboBox_leading"],
+        "comboBox_trailing": ["comboBox_trailing"],
+        "radioButton_inlet_lineer": ["radioButton_inlet_lineer"],
+        "radioButton_inlet_free": ["radioButton_inlet_free"],
+        "radioButton_outlet_lineer": ["radioButton_outlet_lineer"],
+        "radioButton_outlet_free": ["radioButton_outlet_free"],
+        "pushButton_ok": ["pushButton_ok", "pushButton"],
+        "pushButton_cancel": ["pushButton_cancel"],
+    }
+
     def __init__(self, ui_file, imp1D: pump1D.Impeller = None, ind1D: pump1D.Inducer = None, parent=None):
         super(ImpellerDialog, self).__init__()
         loadUi(ui_file, self)
         self.parent = parent
-        self.sender_name = self.parent.sender().objectName()
+        self._missing_widgets = []
+        self._init_model_refs(imp1D, ind1D)
+        self._bind_widgets()
+        self._bind_signals()
+        self._init_plots()
+        self._init_3d()
+        self._refresh_all()
+
+    def _init_model_refs(self, imp1D, ind1D):
+        self.sender_name = ""
+        if self.parent is not None and self.parent.sender() is not None:
+            self.sender_name = self.parent.sender().objectName()
         if ind1D is None:
             self.rotor1D = imp1D
             self.rotor3D = self.parent.pump3D.impeller
-
         else:
             self.rotor1D = ind1D
             self.rotor3D = self.parent.pump3D.inducer
-
         self.rotor3D.initialize()
 
-        ########## WİDGET KURULUMU ##########
+    def _resolve_widget(self, name):
+        for candidate in self.UI_NAME_MAP.get(name, [name]):
+            widget = getattr(self, candidate, None)
+            if widget is None:
+                widget = self.findChild(QWidget, candidate)
+            if widget is not None:
+                return widget
+        self._missing_widgets.append(name)
+        return None
 
-        for lineEdit in self.page_meridional.findChildren(QLineEdit, options=Qt.FindDirectChildrenOnly):
-            lineEdit.setValidator(QDoubleValidator())
-            key_value = self.rotor3D.meridional_dict[lineEdit.objectName().replace("lineEdit_", "")]
-            lineEdit.setText(f"{key_value * 1000:.1f}")
-            lineEdit.textChanged.connect(self.update_meridonal_dict_CP)
+    def _resolve_layout(self, name):
+        for candidate in self.UI_NAME_MAP.get(name, [name]):
+            layout = getattr(self, candidate, None)
+            if layout is not None:
+                return layout
+        self._missing_widgets.append(name)
+        return None
 
-        self.lineEdit_hub_thickness.setText(f"{self.rotor3D.thickness_dict['hub']['thickness'][0] * 1000:.1f}")
-        self.lineEdit_tip_thickness.setText(f"{self.rotor3D.thickness_dict['tip']['thickness'][0] * 1000:.1f}")
+    def _bind_widgets(self):
+        self.toolBox = self._resolve_widget("toolBox")
+        self.page_meridional = self._resolve_widget("page_meridional")
+        self.gridLayout_upper_1 = self._resolve_layout("gridLayout_upper_1")
+        self.gridLayout_lower_1 = self._resolve_layout("gridLayout_lower_1")
+        self.gridLayout_upper_2 = self._resolve_layout("gridLayout_upper_2")
+        self.gridLayout_lower_2 = self._resolve_layout("gridLayout_lower_2")
+        self.gridLayout_upper_3 = self._resolve_layout("gridLayout_upper_3")
+        self.gridLayout_3d = self._resolve_layout("gridLayout_3d")
+        self.stackedWidget = self._resolve_widget("stackedWidget")
+        self.stackedWidget_leading = self._resolve_widget("stackedWidget_leading")
+        self.stackedWidget_trailing = self._resolve_widget("stackedWidget_trailing")
+        self.tableWidget_beta = self._resolve_widget("tableWidget_beta")
+        self.comboBox_leading = self._resolve_widget("comboBox_leading")
+        self.comboBox_trailing = self._resolve_widget("comboBox_trailing")
+        self.radioButton_inlet_lineer = self._resolve_widget("radioButton_inlet_lineer")
+        self.radioButton_inlet_free = self._resolve_widget("radioButton_inlet_free")
+        self.radioButton_outlet_lineer = self._resolve_widget("radioButton_outlet_lineer")
+        self.radioButton_outlet_free = self._resolve_widget("radioButton_outlet_free")
+        self.pushButton_ok = self._resolve_widget("pushButton_ok")
+        self.pushButton_cancel = self._resolve_widget("pushButton_cancel")
 
-        self.lineEdit_hub_thickness.textChanged.connect(self.update_thickness_dict)
-        self.lineEdit_tip_thickness.textChanged.connect(self.update_thickness_dict)
+        if self._missing_widgets:
+            print(f"ImpellerDialog missing widgets (no-op): {', '.join(self._missing_widgets)}")
 
-        self.doubleSpinBox_LE_guide_which.setMaximum(self.rotor3D.guides_dict["number_of_guides"])
-        self.doubleSpinBox_hub_node.setMaximum(self.doubleSpinBox_hub_piece.value() + 1)
-        self.doubleSpinBox_tip_node.setMaximum(self.doubleSpinBox_tip_piece.value() + 1)
-        self.doubleSpinBox_hub_loc.setEnabled(False)
-        self.doubleSpinBox_tip_loc.setEnabled(False)
-        self.doubleSpinBox_leading_ratio.valueChanged.connect(self.update_leading_edge_dict)
-        if self.rotor3D.type == "inducer":
+    def _bind_signals(self):
+        if self.page_meridional is not None:
+            for line_edit in self.page_meridional.findChildren(QLineEdit):
+                line_edit.setValidator(QDoubleValidator())
+                key = line_edit.objectName().replace("lineEdit_", "")
+                if key in self.rotor3D.meridional_dict:
+                    line_edit.setText(f"{self.rotor3D.meridional_dict[key] * 1000:.1f}")
+                    line_edit.textChanged.connect(self.update_meridonal_dict_CP)
+
+        for line_edit_name in ["lineEdit_hub_thickness", "lineEdit_tip_thickness"]:
+            line_edit = getattr(self, line_edit_name, None)
+            if line_edit is None:
+                continue
+            key = line_edit_name.replace("lineEdit_", "").split("_")[0]
+            line_edit.setText(f"{self.rotor3D.thickness_dict[key]['thickness'][0] * 1000:.1f}")
+            line_edit.textChanged.connect(self.update_thickness_dict)
+
+        if getattr(self, "doubleSpinBox_LE_guide_which", None) is not None:
+            self.doubleSpinBox_LE_guide_which.setMaximum(self.rotor3D.guides_dict["number_of_guides"])
+
+        spinbox_defaults = [
+            ("doubleSpinBox_hub_inlet_CP", "hub_inlet_CP"),
+            ("doubleSpinBox_tip_inlet_CP", "tip_inlet_CP"),
+            ("doubleSpinBox_hub_outlet_CP", "hub_outlet_CP"),
+            ("doubleSpinBox_tip_outlet_CP", "tip_outlet_CP"),
+            ("doubleSpinBox_LE_hub", "leading_edge_@hub"),
+            ("doubleSpinBox_LE_tip", "leading_edge_@tip"),
+            ("doubleSpinBox_TE_hub", "trailing_edge_@hub"),
+            ("doubleSpinBox_TE_tip", "trailing_edge_@tip"),
+        ]
+        for spin_box_name, key in spinbox_defaults:
+            spin_box = getattr(self, spin_box_name, None)
+            if spin_box is not None:
+                spin_box.setValue(self.rotor3D.meridional_dict[key])
+        if getattr(self, "doubleSpinBox_LE_guide_which", None) is not None:
+            self.doubleSpinBox_LE_guide_which.setValue(self.rotor3D.meridional_dict["leading_edge_@guide"][0])
+        if getattr(self, "doubleSpinBox_LE_guide", None) is not None:
+            self.doubleSpinBox_LE_guide.setValue(self.rotor3D.meridional_dict["leading_edge_@guide"][1])
+
+        if getattr(self, "doubleSpinBox_hub_piece", None) is not None:
+            self.doubleSpinBox_hub_node.setMaximum(self.doubleSpinBox_hub_piece.value() + 1)
+        if getattr(self, "doubleSpinBox_tip_piece", None) is not None:
+            self.doubleSpinBox_tip_node.setMaximum(self.doubleSpinBox_tip_piece.value() + 1)
+        if getattr(self, "doubleSpinBox_hub_loc", None) is not None:
+            self.doubleSpinBox_hub_loc.setEnabled(False)
+        if getattr(self, "doubleSpinBox_tip_loc", None) is not None:
+            self.doubleSpinBox_tip_loc.setEnabled(False)
+        if getattr(self, "doubleSpinBox_leading_ratio", None) is not None:
+            self.doubleSpinBox_leading_ratio.valueChanged.connect(self.update_leading_edge_dict)
+        if self.rotor3D.type == "inducer" and getattr(self, "doubleSpinBox_trailing_ratio", None) is not None:
             self.doubleSpinBox_trailing_ratio.valueChanged.connect(self.update_leading_edge_dict)
 
-        self.doubleSpinBox_hub_inlet_CP: QDoubleSpinBox
-        self.doubleSpinBox_hub_inlet_CP.setValue(self.rotor3D.meridional_dict["hub_inlet_CP"])
-        self.doubleSpinBox_tip_inlet_CP.setValue(self.rotor3D.meridional_dict["tip_inlet_CP"])
-        self.doubleSpinBox_hub_outlet_CP.setValue(self.rotor3D.meridional_dict["hub_outlet_CP"])
-        self.doubleSpinBox_tip_outlet_CP.setValue(self.rotor3D.meridional_dict["tip_outlet_CP"])
-        self.doubleSpinBox_LE_hub.setValue(self.rotor3D.meridional_dict["leading_edge_@hub"])
-        self.doubleSpinBox_LE_tip.setValue(self.rotor3D.meridional_dict["leading_edge_@tip"])
-        self.doubleSpinBox_LE_guide_which.setValue(self.rotor3D.meridional_dict["leading_edge_@guide"][0])
-        self.doubleSpinBox_LE_guide.setValue(self.rotor3D.meridional_dict["leading_edge_@guide"][1])
-        self.doubleSpinBox_TE_hub.setValue(self.rotor3D.meridional_dict["trailing_edge_@hub"])
-        self.doubleSpinBox_TE_tip.setValue(self.rotor3D.meridional_dict["trailing_edge_@tip"])
-
         for spin_box in self.findChildren(QDoubleSpinBox):
-            if spin_box.parent().objectName().split("_")[-1] == "bezierNodes":
+            parent_name = spin_box.parent().objectName() if spin_box.parent() is not None else ""
+            grandparent = spin_box.parent().parent() if spin_box.parent() is not None else None
+            grandparent_name = grandparent.objectName() if grandparent is not None else ""
+            if parent_name.split("_")[-1] == "bezierNodes":
                 spin_box.valueChanged.connect(self.update_meridonal_dict_CP)
-            elif spin_box.parent().objectName().split("_")[-1] == "betaCPs":
+            elif parent_name.split("_")[-1] == "betaCPs":
                 spin_box.valueChanged.connect(self.update_beta_dict_CP)
-            elif spin_box.parent().objectName().split("_")[-1] == "leadingMer":
+            elif parent_name.split("_")[-1] in ["leadingMer", "trailingMer"]:
                 spin_box.valueChanged.connect(self.update_leading_edge)
-            elif spin_box.parent().objectName().split("_")[-1] == "trailingMer":
-                spin_box.valueChanged.connect(self.update_leading_edge)
-            elif spin_box.parent().parent().objectName().split("_")[-1] == "thickness":
+            elif grandparent_name.split("_")[-1] == "thickness":
                 spin_box.valueChanged.connect(self.update_thickness_dict)
 
         for push_button in self.findChildren(QPushButton):
-            if push_button.parent().objectName().split("_")[-1] == "1D":
+            parent_name = push_button.parent().objectName() if push_button.parent() is not None else ""
+            if parent_name.split("_")[-1] == "1D":
                 push_button.clicked.connect(self.recall_1D_value)
 
-        self.radioButton_inlet_lineer.toggled.connect(self.update_table_view)
-        self.radioButton_inlet_free.toggled.connect(self.update_table_view)
-        self.radioButton_outlet_lineer.toggled.connect(self.update_table_view)
-        self.radioButton_outlet_free.toggled.connect(self.update_table_view)
+        if self.radioButton_inlet_lineer is not None:
+            self.radioButton_inlet_lineer.toggled.connect(self.update_table_view)
+        if self.radioButton_inlet_free is not None:
+            self.radioButton_inlet_free.toggled.connect(self.update_table_view)
+        if self.radioButton_outlet_lineer is not None:
+            self.radioButton_outlet_lineer.toggled.connect(self.update_table_view)
+        if self.radioButton_outlet_free is not None:
+            self.radioButton_outlet_free.toggled.connect(self.update_table_view)
 
-        # self.pushButton_next.clicked.connect(self.switching_widgets)
-        # self.pushButton_before.clicked.connect(self.switching_widgets)
-        # self.pushButton_plot_blade.clicked.connect(self.plot_blade)
-        # self.pushButton_export.clicked.connect(self.export_step)
-        # self.pushButton_json.clicked.connect(self.export_dict)
-        # self.pushButton_save.clicked.connect(self.export_object)
+        if self.comboBox_leading is not None:
+            self.comboBox_leading.currentIndexChanged.connect(self.handle_comboBox_change)
+        if self.comboBox_trailing is not None:
+            self.comboBox_trailing.currentIndexChanged.connect(self.handle_comboBox_change)
 
-        self.comboBox_leading.currentIndexChanged.connect(self.handle_comboBox_change)
-        self.comboBox_trailing.currentIndexChanged.connect(self.handle_comboBox_change)
+        if self.stackedWidget_leading is not None:
+            self.stackedWidget_leading.setCurrentIndex(0)
+        if self.stackedWidget_trailing is not None:
+            self.stackedWidget_trailing.setCurrentIndex(0)
 
-        # self.stackedWidget.setCurrentIndex(0)
-        self.stackedWidget_leading.setCurrentIndex(0)
-        self.stackedWidget_trailing.setCurrentIndex(0)
+        if self.tableWidget_beta is not None:
+            self.tableWidget_beta.setEditTriggers(QAbstractItemView.DoubleClicked)
+            self.tableWidget_beta.setRowCount(self.rotor3D.beta_dict["array"].shape[0])
+            self.tableWidget_beta.horizontalHeader().setStretchLastSection(True)
+            self.tableWidget_beta.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
-        self.tableWidget_beta.setEditTriggers(QAbstractItemView.DoubleClicked)
-        self.tableWidget_beta.setRowCount(self.rotor3D.beta_dict["array"].shape[0])
-        self.tableWidget_beta.horizontalHeader().setStretchLastSection(True)
-        self.tableWidget_beta.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+            for i in range(self.rotor3D.beta_dict["array"].shape[0]):
+                self.tableWidget_beta.setItem(i, 0,
+                                              QTableWidgetItem(
+                                                  f'{self.rotor3D.beta_dict["array"][i, 0] * 180 / np.pi:.2f}'))
+                self.tableWidget_beta.setItem(i, 1,
+                                              QTableWidgetItem(
+                                                  f'{self.rotor3D.beta_dict["array"][i, -1] * 180 / np.pi:.2f}'))
+            self.update_table_view()
 
-        for i in range(self.rotor3D.beta_dict["array"].shape[0]):
-            self.tableWidget_beta.setItem(i, 0,
-                                          QTableWidgetItem(
-                                              f'{self.rotor3D.beta_dict["array"][i, 0] * 180 / np.pi:.2f}'))
-            self.tableWidget_beta.setItem(i, 1,
-                                          QTableWidgetItem(
-                                              f'{self.rotor3D.beta_dict["array"][i, -1] * 180 / np.pi:.2f}'))
-        self.update_table_view()
+        if self.toolBox is not None:
+            self.toolBox.currentChanged.connect(self.switch_plots)
 
+        if self.pushButton_ok is not None:
+            self.pushButton_ok.clicked.connect(self.accept)
+        if self.pushButton_cancel is not None:
+            self.pushButton_cancel.clicked.connect(self.reject)
+
+    def _init_plots(self):
         self.viewer_meridional = GeometryPlot(self, got_axline=False)
-        self.gridLayout_upper_1.addWidget(self.viewer_inlet)
+        if self.gridLayout_upper_1 is not None:
+            self.gridLayout_upper_1.addWidget(self.viewer_meridional)
 
         self.viewer_beta = GeometryPlot(self, rz=False)
-        self.gridLayout_lower_1.addWidget(self.viewer_beta)
-
-        self.viewer_3D = MayaviQWidget(self)
-        self.gridLayout_3d.addWidget(self.viewer_3D)
+        if self.gridLayout_lower_1 is not None:
+            self.gridLayout_lower_1.addWidget(self.viewer_beta)
 
         self.viewer_thickness = GeometryPlot(self, rz=False)
-        self.gridLayout_upper_2.addWidget(self.viewer_thickness)
+        if self.gridLayout_upper_2 is not None:
+            self.gridLayout_upper_2.addWidget(self.viewer_thickness)
 
         self.viewer_leading_edges = GeometryPlot(self, rz=False)
-        self.gridLayout_lower_2.addWidget(self.viewer_leading_edges)
+        if self.gridLayout_lower_2 is not None:
+            self.gridLayout_lower_2.addWidget(self.viewer_leading_edges)
 
         self.viewer_trailing_edges = GeometryPlot(self, rz=False)
-        self.gridLayout_upper_3.addWidget(self.viewer_trailing_edges)
+        if self.gridLayout_upper_3 is not None:
+            self.gridLayout_upper_3.addWidget(self.viewer_trailing_edges)
 
         self.hub_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="-", label='Hub')
-        self.hub_node_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="-o", linewidth=0.5, ms=3)
+        self.hub_node_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="dashed", linewidth=0.5, ms=3)
         self.tip_line = Line2D(xdata=[], ydata=[], color='green', linestyle="-", label='Tip')
-        self.tip_node_line = Line2D(xdata=[], ydata=[], color='green', linestyle="-o", linewidth=0.5, ms=3)
+        self.tip_node_line = Line2D(xdata=[], ydata=[], color='green', linestyle="dashed", linewidth=0.5, ms=3)
         self.leading_line = Line2D(xdata=[], ydata=[], color='red', linestyle="-", label='Leading Edge')
         self.leading_node_line = Line2D(xdata=[], ydata=[], color='red', linestyle="-", linewidth=0.5, ms=3)
         self.trailing_line = Line2D(xdata=[], ydata=[], color='black', linestyle="-", label='Trailing Edge')
@@ -813,8 +977,10 @@ class ImpellerDialog(QDialog):
         self.viewer_meridional.ax.add_line(self.leading_node_line)
         self.viewer_meridional.ax.add_line(self.trailing_line)
 
-        self.beta_inlet_nodes = Line2D(xdata=[], ydata=[], color='green', linestyle="-o", linewidth=0.5, ms=3)
+        self.beta_inlet_nodes = Line2D(xdata=[], ydata=[], color='green', linestyle="dashed", linewidth=0.5, ms=3)
+        self.beta_outlet_nodes = Line2D(xdata=[], ydata=[], color='blue', linestyle="dashed", linewidth=0.5, ms=3)
         self.viewer_beta.ax.add_line(self.beta_inlet_nodes)
+        self.viewer_beta.ax.add_line(self.beta_outlet_nodes)
 
         self.beta_lines = []
         for i, beta_line in enumerate(self.rotor3D.beta_dict["array"]):
@@ -829,6 +995,39 @@ class ImpellerDialog(QDialog):
             self.beta_lines.append(Line2D(xdata=[], ydata=[], color=color, linestyle=linestyle))
             self.viewer_beta.ax.add_line(self.beta_lines[-1])
 
+        self.hub_pressure_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="dashed", ms=2)
+        self.hub_suction_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="dashed", ms=2)
+        self.tip_pressure_line = Line2D(xdata=[], ydata=[], color='green', linestyle="dashed", ms=2)
+        self.tip_suction_line = Line2D(xdata=[], ydata=[], color='green', linestyle="dashed", ms=2)
+        self.viewer_thickness.ax.add_line(self.hub_pressure_line)
+        self.viewer_thickness.ax.add_line(self.hub_suction_line)
+        self.viewer_thickness.ax.add_line(self.tip_pressure_line)
+        self.viewer_thickness.ax.add_line(self.tip_suction_line)
+
+        self.hub_hatch = None
+        self.tip_hatch = None
+        self.hub_pointer = None
+        self.tip_pointer = None
+
+        t = np.linspace(0.5 * np.pi, 1.5 * np.pi, 20)
+        [self.leading_edge] = self.viewer_leading_edges.ax.plot(
+            self.rotor3D.leading_edge_dict["ratio"] * np.cos(t), np.sin(t), color="red")
+        [self.leading_edge_p] = self.viewer_leading_edges.ax.plot([0, 1], [1, 1], color="black", linestyle="--")
+        [self.leading_edge_s] = self.viewer_leading_edges.ax.plot([0, 1], [-1, -1], color="black", linestyle="--")
+        if self.rotor3D.trailing_edge_dict.get("method") == "Eliptik":
+            [self.trailing_edge] = self.viewer_trailing_edges.ax.plot(
+                1 - self.rotor3D.trailing_edge_dict["ratio"] * np.cos(t), np.sin(t), color="red")
+        else:
+            [self.trailing_edge] = self.viewer_trailing_edges.ax.plot([1, 1], [-1, 1], color="red")
+        [self.trailing_edge_p] = self.viewer_trailing_edges.ax.plot([0, 1], [1, 1], color="black", linestyle="--")
+        [self.trailing_edge_s] = self.viewer_trailing_edges.ax.plot([0, 1], [-1, -1], color="black", linestyle="--")
+
+    def _init_3d(self):
+        self.viewer_3D = None
+        if self.gridLayout_3d is not None:
+            self.viewer_3D = MayaviQWidget(self)
+            self.gridLayout_3d.addWidget(self.viewer_3D)
+
         self.hub_merid = PointCloudLine()
         self.tip_merid = PointCloudLine()
         self.blade_hub = PointCloudLine()
@@ -839,87 +1038,82 @@ class ImpellerDialog(QDialog):
         self.blade_hub.points = self.rotor3D.blade_hub
         self.blade_tip.points = self.rotor3D.blade_tip
 
-        self.viewer_3D.ax.add_line(self.hub_merid)
-        self.viewer_3D.ax.add_line(self.tip_merid)
-        self.viewer_3D.ax.add_line(self.blade_hub)
-        self.viewer_3D.ax.add_line(self.blade_tip)
+        if self.viewer_3D is not None:
+            self.viewer_3D.add_line(self.hub_merid)
+            self.viewer_3D.add_line(self.tip_merid)
+            self.viewer_3D.add_line(self.blade_hub)
+            self.viewer_3D.add_line(self.blade_tip)
 
         self.blade_lines = []
-        for i, blade_line in enumerate(self.rotor3D.guides_dict["blade_guides"]):
+        for blade_line in self.rotor3D.guides_dict["blade_guides"]:
             self.blade_lines.append(PointCloudLine(blade_line))
-            self.viewer_3D.ax.add_line(self.blade_lines[-1])
+            if self.viewer_3D is not None:
+                self.viewer_3D.add_line(self.blade_lines[-1])
 
-        circle = np.linspace(0, 2 * np.pi)
-        self.impeller_hub_exit = PointCloudLine(np.concatenate((self.rotor3D.hub.r[-1] * np.cos(circle),
-                                                                self.rotor3D.hub.r[-1] * np.sin(circle),
-                                                                self.rotor3D.hub.z[-1])))
-        self.impeller_hub_inlet = PointCloudLine(np.concatenate((self.rotor3D.hub.r[0] * np.cos(circle),
-                                                                 self.rotor3D.hub.r[0] * np.sin(circle),
-                                                                 self.rotor3D.hub.z[0])))
-        self.impeller_tip_exit = PointCloudLine(np.concatenate((self.rotor3D.tip.r[-1] * np.cos(circle),
-                                                                self.rotor3D.tip.r[-1] * np.sin(circle),
-                                                                self.rotor3D.tip.z[-1])))
-        self.impeller_tip_inlet = PointCloudLine(np.concatenate((self.rotor3D.tip.r[0] * np.cos(circle),
-                                                                 self.rotor3D.tip.r[0] * np.sin(circle),
-                                                                 self.rotor3D.tip.z[0])))
-        self.viewer_3D.ax.add_line(self.impeller_hub_exit)
-        self.viewer_3D.ax.add_line(self.impeller_hub_inlet)
-        self.viewer_3D.ax.add_line(self.impeller_tip_exit)
-        self.viewer_3D.ax.add_line(self.impeller_tip_inlet)
+        self.impeller_hub_exit = PointCloudLine(self._circle_points(self.rotor3D.hub.r[-1], self.rotor3D.hub.z[-1]))
+        self.impeller_hub_inlet = PointCloudLine(self._circle_points(self.rotor3D.hub.r[0], self.rotor3D.hub.z[0]))
+        self.impeller_tip_exit = PointCloudLine(self._circle_points(self.rotor3D.tip.r[-1], self.rotor3D.tip.z[-1]))
+        self.impeller_tip_inlet = PointCloudLine(self._circle_points(self.rotor3D.tip.r[0], self.rotor3D.tip.z[0]))
+
+        if self.viewer_3D is not None:
+            self.viewer_3D.add_line(self.impeller_hub_exit)
+            self.viewer_3D.add_line(self.impeller_hub_inlet)
+            self.viewer_3D.add_line(self.impeller_tip_exit)
+            self.viewer_3D.add_line(self.impeller_tip_inlet)
 
         self.pressure_lines = []
         self.suction_lines = []
         for pressure_line, suction_line in zip(self.rotor3D.foil_dict["pressure"]["curves"],
                                                self.rotor3D.foil_dict["suction"]["curves"]):
-
             self.pressure_lines.append(PointCloudLine(pressure_line))
             self.suction_lines.append(PointCloudLine(suction_line))
-            self.viewer_3D.ax.add_line(self.pressure_lines[-1])
-            self.viewer_3D.ax.add_line(self.suction_lines)
+            if self.viewer_3D is not None:
+                self.viewer_3D.add_line(self.pressure_lines[-1])
+                self.viewer_3D.add_line(self.suction_lines[-1])
 
         self.leading_lines = []
-        for i, edge_line in enumerate(self.rotor3D.leading_edge_dict["curves"]):
-            self.edge_line.append(PointCloudLine(edge_line))
-            self.viewer_3D.ax.add_line(self.edge_line[-1])
+        for edge_line in self.rotor3D.leading_edge_dict.get("curves", []):
+            self.leading_lines.append(PointCloudLine(edge_line))
+            if self.viewer_3D is not None:
+                self.viewer_3D.add_line(self.leading_lines[-1])
 
         self.trailing_lines = []
-        if self.rotor3D.trailing_edge_dict["method"] == "Eliptik":
-            self.comboBox_trailing.setCurrentIndex(1)
-            for i, edge_line in enumerate(self.rotor3D.trailing_edge_dict["curves"]):
-                self.edge_line.append(PointCloudLine(edge_line))
-                self.viewer_3D.ax.add_line(self.edge_line[-1])
+        if self.rotor3D.trailing_edge_dict.get("method") == "Eliptik":
+            if self.comboBox_trailing is not None:
+                self.comboBox_trailing.setCurrentIndex(1)
+            for edge_line in self.rotor3D.trailing_edge_dict.get("curves", []):
+                self.trailing_lines.append(PointCloudLine(edge_line))
+                if self.viewer_3D is not None:
+                    self.viewer_3D.add_line(self.trailing_lines[-1])
 
-        viewer_thickness
+    def _refresh_all(self):
+        self.rotor3D.set_meridional_geometry()
+        self.rotor3D.set_beta_array()
+        self.rotor3D.set_thetas_from_betas()
+        self.rotor3D.set_thickness_array()
+        self.rotor3D.set_foils()
+        self.rotor3D.set_leading_edge()
+        self.rotor3D.set_trailing_edge()
+        self.update_meridional_plot()
+        self.update_beta_plot()
+        self.update_thickness_plot()
+        self.update_leading_edge_plot()
+        self.plot_blade()
 
-        self.hub_pressure_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="-o", ms=2)
-        self.hub_suction_line = Line2D(xdata=[], ydata=[], color='blue', linestyle="-o", ms=2)
-        self.tip_pressure_line = Line2D(xdata=[], ydata=[], color='green', linestyle="-o", ms=2)
-        self.tip_suction_line = Line2D(xdata=[], ydata=[], color='green', linestyle="-o", ms=2)
+    def _circle_points(self, radius, z_value):
+        circle = np.linspace(0, 2 * np.pi, 100)
+        return np.column_stack([
+            radius * np.cos(circle),
+            radius * np.sin(circle),
+            np.full_like(circle, z_value)
+        ])
 
-
-        self.hub_hatch = PolyCollection(verts=[], interpolate=True, color=colors.CSS4_COLORS["lightblue"], hatch="//",
-                                        edgecolor="red")
-
-        self.tip_hatch = PolyCollection(verts=[], interpolate=True, color=colors.CSS4_COLORS["lightgreen"], hatch="\\",
-                                        edgecolor="green")
-
-        self.hub_pointer = PathCollection(paths=[], s=100, c='blue')
-        self.tip_pointer = PathCollection(paths=[], s=100, c='green')
-        t = np.linspace(0.5 * np.pi, 1.5 * np.pi, 20)
-        [self.leading_edge] = self.canvas_edges.ax1.plot(self.rotor3D.leading_edge_dict["ratio"] * np.cos(t), np.sin(t),
-                                                         color="red")
-        [self.leading_edge_p] = self.canvas_edges.ax1.plot([0, 1], [1, 1], color="black", linestyle="--")
-        [self.leading_edge_s] = self.canvas_edges.ax1.plot([0, 1], [-1, -1], color="black", linestyle="--")
-        if self.rotor3D.trailing_edge_dict["method"] == "Eliptik":
-            [self.trailing_edge] = self.canvas_edges.ax2.plot(1 - self.rotor3D.trailing_edge_dict["ratio"] * np.cos(t),
-                                                              np.sin(t),
-                                                              color="red")
-        else:
-            [self.trailing_edge] = self.canvas_edges.ax2.plot([1, 1], [-1, 1], color="red")
-        [self.trailing_edge_p] = self.canvas_edges.ax2.plot([0, 1], [1, 1], color="black", linestyle="--")
-        [self.trailing_edge_s] = self.canvas_edges.ax2.plot([0, 1], [-1, -1], color="black", linestyle="--")
-
-        # self.switching_widgets()
+    def switch_plots(self, index):
+        self.update_meridional_plot()
+        self.update_beta_plot()
+        self.update_thickness_plot()
+        self.update_leading_edge_plot()
+        self.plot_blade()
 
     def accept(self):
         if self.sender_name == "pushButton_impeller":
@@ -937,7 +1131,8 @@ class ImpellerDialog(QDialog):
         else:
             key_name = self.sender().objectName().replace("lineEdit_", "")
             value = float(value) / 1000
-        self.rotor3D.meridional_dict[key_name] = value
+        if key_name in self.rotor3D.meridional_dict:
+            self.rotor3D.meridional_dict[key_name] = value
         self.rotor3D.set_meridional_geometry()
         self.update_meridional_plot()
 
@@ -961,6 +1156,8 @@ class ImpellerDialog(QDialog):
         self.update_meridional_plot(category="leading")
 
     def update_meridional_plot(self, category="all"):
+        if self.viewer_meridional is None:
+            return
         if category in ["all", "hub"]:
             self.hub_line.set_data(self.rotor3D.hub.z, self.rotor3D.hub.r)
             self.hub_node_line.set_data(self.rotor3D.hub.bezier.nodes[2], self.rotor3D.hub.bezier.nodes[0])
@@ -981,11 +1178,14 @@ class ImpellerDialog(QDialog):
             for i, guide_line in enumerate(self.guide_lines):
                 guide_bezier = self.rotor3D.guides_dict["guides"][i]
                 guide_line.set_data(guide_bezier.z, guide_bezier.r)
-        self.canvas_meridional.ax.autoscale()
-        self.canvas_meridional.draw()
+        self.viewer_meridional.ax.relim()
+        self.viewer_meridional.ax.autoscale_view()
+        self.viewer_meridional.update_plot()
 
     def update_beta_dict(self):
-        if self.radioButton_inlet_lineer.isChecked():
+        if self.tableWidget_beta is None:
+            return
+        if self.radioButton_inlet_lineer is not None and self.radioButton_inlet_lineer.isChecked():
             self.rotor3D.beta_dict["inlet_betas"]["method"] = "linear"
             self.rotor3D.beta_dict["inlet_betas"]["array"][0] = float(
                 self.tableWidget_beta.item(0, 0).text()) * np.pi / 180
@@ -997,7 +1197,7 @@ class ImpellerDialog(QDialog):
                 self.rotor3D.beta_dict["inlet_betas"]["array"][row] = float(
                     self.tableWidget_beta.item(row, 0).text()) * np.pi / 180
 
-        if self.radioButton_outlet_lineer.isChecked():
+        if self.radioButton_outlet_lineer is not None and self.radioButton_outlet_lineer.isChecked():
             self.rotor3D.beta_dict["outlet_betas"]["method"] = "linear"
             self.rotor3D.beta_dict["outlet_betas"]["array"][0] = float(
                 self.tableWidget_beta.item(0, 1).text()) * np.pi / 180
@@ -1023,6 +1223,8 @@ class ImpellerDialog(QDialog):
         self.update_beta_plot()
 
     def update_table_view(self):
+        if self.tableWidget_beta is None:
+            return
         for i in range(self.tableWidget_beta.rowCount()):
             item_inlet = self.tableWidget_beta.item(i, 0)
             item_inlet.setText(f'{self.rotor3D.beta_dict["array"][i, 0] * 180 / np.pi:.2f}')
@@ -1030,25 +1232,27 @@ class ImpellerDialog(QDialog):
             item_outlet.setText(f'{self.rotor3D.beta_dict["array"][i, -1] * 180 / np.pi:.2f}')
 
             if i not in [0, self.tableWidget_beta.rowCount() - 1]:
-                if self.radioButton_inlet_free.isChecked():
+                if self.radioButton_inlet_free is not None and self.radioButton_inlet_free.isChecked():
                     item_inlet.setFlags(
                         Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled | Qt.ItemIsUserCheckable | Qt.ItemIsEditable)
                 else:
                     item_inlet.setFlags(Qt.ItemIsDragEnabled | Qt.ItemIsUserCheckable)
-                if self.radioButton_outlet_free.isChecked():
+                if self.radioButton_outlet_free is not None and self.radioButton_outlet_free.isChecked():
                     item_outlet.setFlags(
                         Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled | Qt.ItemIsUserCheckable | Qt.ItemIsEditable)
                 else:
                     item_outlet.setFlags(Qt.ItemIsDragEnabled | Qt.ItemIsUserCheckable)
 
     def keyPressEvent(self, event):
-        if self.stackedWidget.currentIndex() == 1:
+        if self.stackedWidget is not None and self.stackedWidget.currentIndex() == 1:
             if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
                 self.update_beta_dict()
         else:
             pass
 
     def update_beta_plot(self):
+        if self.viewer_beta is None:
+            return
         self.beta_inlet_nodes.set_data([0, 0.33, 0.67, 1],
                                        (self.rotor3D.beta_dict["array"][0, 0] + (
                                                self.rotor3D.beta_dict["array"][0, -1] - self.rotor3D.beta_dict["array"][
@@ -1061,8 +1265,10 @@ class ImpellerDialog(QDialog):
 
         for i, beta_line in enumerate(self.beta_lines):
             beta_line.set_ydata(self.rotor3D.beta_dict["array"][i] * 180 / np.pi)
-        self.canvas_beta.ax.autoscale()
-        self.canvas_beta.draw()
+            beta_line.set_xdata(np.linspace(0,1,len(self.rotor3D.beta_dict["array"][i])))
+        self.viewer_beta.ax.relim()
+        self.viewer_beta.ax.autoscale_view()
+        self.viewer_beta.update_plot()
 
     def recall_1D_value(self):
         key_name = self.sender().objectName().replace("pushButton_", "")
@@ -1075,6 +1281,8 @@ class ImpellerDialog(QDialog):
         self.update_meridional_plot()
 
     def switching_widgets(self):
+        if not hasattr(self.hub_merid, "set_linestyle"):
+            return
         direction = 1
         if self.sender().objectName().split("_")[-1] != "next":
             direction = -1
@@ -1155,9 +1363,13 @@ class ImpellerDialog(QDialog):
         obj_name = self.sender().objectName().replace("doubleSpinBox_", "")
         obj_name.replace("lineEdit_", "")
         hub_or_tip = self.sender().parent().objectName().replace("groupBox_", "")
+        if hub_or_tip not in self.rotor3D.thickness_dict:
+            return
         t_dict = self.rotor3D.thickness_dict[hub_or_tip]
         if obj_name.split("_")[-1] == "piece":
-            node_spin = getattr(self, "doubleSpinBox_" + hub_or_tip + "_node")
+            node_spin = getattr(self, "doubleSpinBox_" + hub_or_tip + "_node", None)
+            if node_spin is None:
+                return
             node_spin.setMaximum(int(value))
             dummy_dict = {
                 "number_of_piece": int(value),
@@ -1169,7 +1381,9 @@ class ImpellerDialog(QDialog):
             self.rotor3D.thickness_dict[hub_or_tip] = dummy_dict
 
         if obj_name.split("_")[-1] == "node":
-            loc = getattr(self, "doubleSpinBox_" + hub_or_tip + "_loc")
+            loc = getattr(self, "doubleSpinBox_" + hub_or_tip + "_loc", None)
+            if loc is None:
+                return
             loc.setValue(t_dict["location"][int(value)])
             thickness = getattr(self, "lineEdit_" + hub_or_tip + "_thickness")
             thickness.setText(f'{t_dict["thickness"][int(value)] * 1000:.1f}')
@@ -1179,7 +1393,9 @@ class ImpellerDialog(QDialog):
             if int(value) in [0, int(t_dict["number_of_piece"])]:
                 loc.setEnabled(False)
 
-        node = getattr(self, "doubleSpinBox_" + hub_or_tip + "_node")
+        node = getattr(self, "doubleSpinBox_" + hub_or_tip + "_node", None)
+        if node is None:
+            return
         index = node.value()
         if obj_name.split("_")[-1] == "loc":
             self.rotor3D.thickness_dict[hub_or_tip]["location"][int(index)] = value
@@ -1192,8 +1408,10 @@ class ImpellerDialog(QDialog):
         self.update_thickness_plot()
 
     def update_thickness_plot(self):
-        hub_node = int(self.doubleSpinBox_hub_node.value())
-        tip_node = int(self.doubleSpinBox_tip_node.value())
+        if self.viewer_thickness is None:
+            return
+        hub_node = int(self.doubleSpinBox_hub_node.value()) if getattr(self, "doubleSpinBox_hub_node", None) else 0
+        tip_node = int(self.doubleSpinBox_tip_node.value()) if getattr(self, "doubleSpinBox_tip_node", None) else 0
         self.hub_pressure_line.set_data(self.rotor3D.thickness_dict["hub"]["location"],
                                         self.rotor3D.thickness_dict["hub"]["thickness"] *
                                         self.rotor3D.thickness_dict["hub"][
@@ -1211,54 +1429,55 @@ class ImpellerDialog(QDialog):
         self.tip_suction_line.set_data(self.rotor3D.thickness_dict["tip"]["location"],
                                        -self.rotor3D.thickness_dict["tip"]["thickness"] *
                                        (1 - self.rotor3D.thickness_dict["tip"]["distribution"]) * 1000)
+        if self.hub_pointer is None:
+            self.hub_pointer = self.viewer_thickness.ax.scatter([], [], s=100, c='blue')
+        if self.tip_pointer is None:
+            self.tip_pointer = self.viewer_thickness.ax.scatter([], [], s=100, c='green')
 
         self.hub_pointer.set_offsets(
             np.transpose([self.rotor3D.thickness_dict["hub"]["location"][hub_node] * np.ones(2),
-                          np.array([1, -1]) * self.rotor3D.thickness_dict["hub"]["thickness"][
-                              hub_node] *
+                          np.array([1, -1]) * self.rotor3D.thickness_dict["hub"]["thickness"][hub_node] *
                           np.array([self.rotor3D.thickness_dict["hub"]["distribution"][hub_node],
-                                    1 - self.rotor3D.thickness_dict["hub"]["distribution"][
-                                        hub_node]]) * 1000]))
+                                    1 - self.rotor3D.thickness_dict["hub"]["distribution"][hub_node]]) * 1000]))
         self.tip_pointer.set_offsets(
             np.transpose([self.rotor3D.thickness_dict["tip"]["location"][tip_node] * np.ones(2),
-                          np.array([1, -1]) * self.rotor3D.thickness_dict["tip"]["thickness"][
-                              tip_node] *
+                          np.array([1, -1]) * self.rotor3D.thickness_dict["tip"]["thickness"][tip_node] *
                           np.array([self.rotor3D.thickness_dict["tip"]["distribution"][tip_node],
-                                    1 - self.rotor3D.thickness_dict["tip"]["distribution"][
-                                        tip_node]]) * 1000]))
+                                    1 - self.rotor3D.thickness_dict["tip"]["distribution"][tip_node]]) * 1000]))
 
-        self.hub_hatch.remove()
-        self.tip_hatch.remove()
+        if self.hub_hatch is not None:
+            self.hub_hatch.remove()
+        if self.tip_hatch is not None:
+            self.tip_hatch.remove()
 
-        self.hub_hatch = self.canvas_thickness.ax.fill_between(self.rotor3D.thickness_dict["hub"]["location"],
-                                                               self.rotor3D.thickness_dict["hub"]["thickness"] *
-                                                               self.rotor3D.thickness_dict["hub"][
-                                                                   "distribution"] * 1000,
-                                                               - self.rotor3D.thickness_dict["hub"]["thickness"] * (
-                                                                       1 - self.rotor3D.thickness_dict["hub"][
-                                                                   "distribution"]) * 1000, interpolate=True,
-                                                               color=colors.CSS4_COLORS["lightblue"], hatch="//",
-                                                               edgecolor="blue")
+        self.hub_hatch = self.viewer_thickness.ax.fill_between(
+            self.rotor3D.thickness_dict["hub"]["location"],
+            self.rotor3D.thickness_dict["hub"]["thickness"] * self.rotor3D.thickness_dict["hub"]["distribution"] * 1000,
+            - self.rotor3D.thickness_dict["hub"]["thickness"] * (1 - self.rotor3D.thickness_dict["hub"]["distribution"]) * 1000,
+            interpolate=True,
+            color=colors.CSS4_COLORS["lightblue"],
+            hatch="//",
+            edgecolor="blue")
 
-        self.tip_hatch = self.canvas_thickness.ax.fill_between(self.rotor3D.thickness_dict["tip"]["location"],
-                                                               self.rotor3D.thickness_dict["tip"]["thickness"] *
-                                                               self.rotor3D.thickness_dict["tip"][
-                                                                   "distribution"] * 1000,
-                                                               - self.rotor3D.thickness_dict["tip"]["thickness"] *
-                                                               (1 - self.rotor3D.thickness_dict["tip"][
-                                                                   "distribution"]) * 1000, interpolate=True,
-                                                               color=colors.CSS4_COLORS["lightgreen"], hatch="\\",
-                                                               edgecolor="green")
-        self.canvas_edges.ax1.margins(0.05, 0.1)
-        self.canvas_edges.ax2.margins(0.05, 0.1)
-        self.canvas_thickness.draw()
+        self.tip_hatch = self.viewer_thickness.ax.fill_between(
+            self.rotor3D.thickness_dict["tip"]["location"],
+            self.rotor3D.thickness_dict["tip"]["thickness"] * self.rotor3D.thickness_dict["tip"]["distribution"] * 1000,
+            - self.rotor3D.thickness_dict["tip"]["thickness"] * (1 - self.rotor3D.thickness_dict["tip"]["distribution"]) * 1000,
+            interpolate=True,
+            color=colors.CSS4_COLORS["lightgreen"],
+            hatch="\\",
+            edgecolor="green")
+        self.viewer_thickness.ax.margins(0.05, 0.1)
+        self.viewer_thickness.update_plot()
 
     def handle_comboBox_change(self, index):
         if self.sender().objectName() == "comboBox_leading":
-            self.stackedWidget_leading.setCurrentIndex(index)
+            if self.stackedWidget_leading is not None:
+                self.stackedWidget_leading.setCurrentIndex(index)
             self.rotor3D.leading_edge_dict["method"] = self.sender().currentText()
         elif self.sender().objectName() == "comboBox_trailing":
-            self.stackedWidget_trailing.setCurrentIndex(index)
+            if self.stackedWidget_trailing is not None:
+                self.stackedWidget_trailing.setCurrentIndex(index)
             self.rotor3D.trailing_edge_dict["method"] = self.sender().currentText()
 
     def update_leading_edge_dict(self):
@@ -1273,63 +1492,52 @@ class ImpellerDialog(QDialog):
         self.update_leading_edge_plot()
 
     def update_leading_edge_plot(self):
+        if self.viewer_leading_edges is None or self.viewer_trailing_edges is None:
+            return
         t = np.linspace(0.5 * np.pi, 1.5 * np.pi, 20)
         self.leading_edge.set_data(self.rotor3D.leading_edge_dict["ratio"] * np.cos(t), np.sin(t))
         if self.rotor3D.trailing_edge_dict["method"] == "Eliptik":
             self.trailing_edge.set_data(1 - self.rotor3D.trailing_edge_dict["ratio"] * np.cos(t), np.sin(t))
         elif self.rotor3D.trailing_edge_dict["method"] == "Çıkış Üzerinde":
             self.trailing_edge.set_data([1, 1], [1, -1])
-        self.canvas_edges.draw()
+        self.viewer_leading_edges.update_plot()
+        self.viewer_trailing_edges.update_plot()
 
     def plot_blade(self):
+        if self.viewer_3D is None:
+            return
 
-        self.hub_merid.set_data(self.rotor3D.hub.r, np.zeros_like(self.rotor3D.hub.r))
-        self.hub_merid.set_3d_properties(self.rotor3D.hub.z)
+        self.hub_merid.points = self.rotor3D.hub
+        self.tip_merid.points = self.rotor3D.tip
+        self.blade_hub.points = self.rotor3D.blade_hub
+        self.blade_tip.points = self.rotor3D.blade_tip
 
-        self.tip_merid.set_data(self.rotor3D.tip.r, np.zeros_like(self.rotor3D.tip.r))
-        self.tip_merid.set_3d_properties(self.rotor3D.tip.z)
-
-        circle = np.linspace(0, 2 * np.pi)
-        self.impeller_hub_exit.set_data(self.rotor3D.hub.r[-1] * np.cos(circle),
-                                        self.rotor3D.hub.r[-1] * np.sin(circle))
-        self.impeller_hub_exit.set_3d_properties(self.rotor3D.hub.z[-1])
-        self.impeller_hub_inlet.set_data(self.rotor3D.hub.r[0] * np.cos(circle),
-                                         self.rotor3D.hub.r[0] * np.sin(circle))
-        self.impeller_hub_inlet.set_3d_properties(self.rotor3D.hub.z[0])
-        self.impeller_tip_exit.set_data(self.rotor3D.tip.r[-1] * np.cos(circle),
-                                        self.rotor3D.tip.r[-1] * np.sin(circle))
-        self.impeller_tip_exit.set_3d_properties(self.rotor3D.tip.z[-1])
-        self.impeller_tip_inlet.set_data(self.rotor3D.tip.r[0] * np.cos(circle),
-                                         self.rotor3D.tip.r[0] * np.sin(circle))
-        self.impeller_tip_inlet.set_3d_properties(self.rotor3D.tip.z[0])
-
-        self.blade_hub.set_data(self.rotor3D.blade_hub.x, self.rotor3D.blade_hub.y)
-        self.blade_hub.set_3d_properties(self.rotor3D.blade_hub.z)
-
-        self.blade_tip.set_data(self.rotor3D.blade_tip.x, self.rotor3D.blade_tip.y)
-        self.blade_tip.set_3d_properties(self.rotor3D.blade_tip.z)
+        self.impeller_hub_exit.points = self._circle_points(self.rotor3D.hub.r[-1], self.rotor3D.hub.z[-1])
+        self.impeller_hub_inlet.points = self._circle_points(self.rotor3D.hub.r[0], self.rotor3D.hub.z[0])
+        self.impeller_tip_exit.points = self._circle_points(self.rotor3D.tip.r[-1], self.rotor3D.tip.z[-1])
+        self.impeller_tip_inlet.points = self._circle_points(self.rotor3D.tip.r[0], self.rotor3D.tip.z[0])
 
         for i, blade_line in enumerate(self.rotor3D.guides_dict["blade_guides"]):
-            self.blade_lines[i].set_data(blade_line.x, blade_line.y)
-            self.blade_lines[i].set_3d_properties(blade_line.z)
+            if i < len(self.blade_lines):
+                self.blade_lines[i].points = blade_line
 
         for i, (pressure_line, suction_line) in enumerate(
                 zip(self.rotor3D.foil_dict["pressure"]["curves"], self.rotor3D.foil_dict["suction"]["curves"])):
-            self.pressure_lines[i].set_data(pressure_line.x, pressure_line.y)
-            self.pressure_lines[i].set_3d_properties(pressure_line.z)
-            self.suction_lines[i].set_data(suction_line.x, suction_line.y)
-            self.suction_lines[i].set_3d_properties(suction_line.z)
+            if i < len(self.pressure_lines):
+                self.pressure_lines[i].points = pressure_line
+            if i < len(self.suction_lines):
+                self.suction_lines[i].points = suction_line
 
-        for i, edge_line in enumerate(self.rotor3D.leading_edge_dict["curves"]):
-            self.leading_lines[i].set_data(edge_line.x, edge_line.y)
-            self.leading_lines[i].set_3d_properties(edge_line.z)
+        for i, edge_line in enumerate(self.rotor3D.leading_edge_dict.get("curves", [])):
+            if i < len(self.leading_lines):
+                self.leading_lines[i].points = edge_line
 
-        if self.rotor3D.trailing_edge_dict["method"] == "Eliptik":
-            for i, edge_line in enumerate(self.rotor3D.trailing_edge_dict["curves"]):
-                self.trailing_lines[i].set_data(edge_line.x, edge_line.y)
-                self.trailing_lines[i].set_3d_properties(edge_line.z)
+        if self.rotor3D.trailing_edge_dict.get("method") == "Eliptik":
+            for i, edge_line in enumerate(self.rotor3D.trailing_edge_dict.get("curves", [])):
+                if i < len(self.trailing_lines):
+                    self.trailing_lines[i].points = edge_line
 
-        self.canvas_blade.draw()
+        self.viewer_3D.update_viewer()
 
     def export_step(self):
         salome_path = QFileDialog.getExistingDirectory(self, "SALOME KONUMUNU SEÇ")

@@ -19,7 +19,16 @@ def calc_shaft_radius(h_w, rpm, s_a):
 
 
 def calc_hydraulic_efficiency(nss):
-    nssimport numpy as np
+    nss_brennen = nss * 15850.32**0.5 / 3.28083**0.75 / 2734.6
+    if nss_brennen < 0.8:
+        h_e = 0.41989 +\
+              2.1524 * nss_brennen -\
+              3.1434 * nss_brennen ** 2 +\
+              1.5679 * nss_brennen ** 3
+    else:
+        h_e = 1.020 - 0.120 * nss_brennen
+
+    return h_e
 
 
 def min_impeller_r(shaft_r):
@@ -90,16 +99,7 @@ def calc_shaft_radius_from_dict(tp_dict, rpm):
     else:
         tp_dict["fuel_pump"]["shaft_radius"] = shaftList[arg_fu]
 
-    return tp_dict_brennen = nss * 15850.32**0.5 / 3.28083**0.75 / 2734.6
-    if nss_brennen < 0.8:
-        h_e = 0.41989 +\
-              2.1524 * nss_brennen -\
-              3.1434 * nss_brennen ** 2 +\
-              1.5679 * nss_brennen ** 3
-    else:
-        h_e = 1.020 - 0.120 * nss_brennen
-
-    return h_e
+    return tp_dict
 
 
 def calc_shaft_radius_from_dict(tp_dict, rpm):
