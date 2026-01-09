@@ -805,6 +805,7 @@ class ImpellerDialog(QDialog):
         self._missing_widgets = []
         self._init_model_refs(imp1D, ind1D)
         self._bind_widgets()
+        self._cache_layout_defaults()
         self._bind_signals()
         self._init_plots()
         self._init_3d()
@@ -882,6 +883,25 @@ class ImpellerDialog(QDialog):
 
         if self._missing_widgets:
             print(f"ImpellerDialog missing widgets (no-op): {', '.join(self._missing_widgets)}")
+
+    def _cache_layout_defaults(self):
+        if self.stackedWidget_lower is not None:
+            self._lower_min_height = self.stackedWidget_lower.minimumHeight()
+            self._lower_max_height = self.stackedWidget_lower.maximumHeight()
+            self._lower_size_policy = self.stackedWidget_lower.sizePolicy()
+        else:
+            self._lower_min_height = 0
+            self._lower_max_height = 0
+            self._lower_size_policy = None
+
+        if self.dockWidget_3d is not None:
+            self._dock3d_min_width = self.dockWidget_3d.minimumWidth()
+            self._dock3d_max_width = self.dockWidget_3d.maximumWidth()
+            self._dock3d_size_policy = self.dockWidget_3d.sizePolicy()
+        else:
+            self._dock3d_min_width = 0
+            self._dock3d_max_width = 0
+            self._dock3d_size_policy = None
 
     def _bind_signals(self):
         self.wire_ui_signals()
@@ -1460,11 +1480,10 @@ class ImpellerDialog(QDialog):
         upper_layout = self._primary_upper_layout()
         lower_layout = self._primary_lower_layout()
         self._apply_stack_layouts(upper_layout, lower_layout)
+        self._apply_page_layout_constraints(page_key)
 
         if page_key == "meridional":
             self._set_slot_widget(upper_layout, self.viewer_meridional)
-            self._clear_layout(lower_layout)
-            self._set_widget_visible(self.dockWidget_3d, False)
         elif page_key == "beta":
             self._set_slot_widget(upper_layout, self.viewer_meridional)
             self._set_slot_widget(lower_layout, self.viewer_beta)
@@ -1489,6 +1508,28 @@ class ImpellerDialog(QDialog):
         if enable_3d:
             self._update_3d_for_page()
         self._schedule_redraw()
+
+    def _apply_page_layout_constraints(self, page_key):
+        if page_key == "meridional":
+            if self.stackedWidget_lower is not None:
+                self.stackedWidget_lower.setMinimumHeight(0)
+                self.stackedWidget_lower.setMaximumHeight(0)
+                self.stackedWidget_lower.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            if self.dockWidget_3d is not None:
+                self.dockWidget_3d.setMinimumWidth(0)
+                self.dockWidget_3d.setMaximumWidth(0)
+                self.dockWidget_3d.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        else:
+            if self.stackedWidget_lower is not None:
+                self.stackedWidget_lower.setMinimumHeight(self._lower_min_height)
+                self.stackedWidget_lower.setMaximumHeight(self._lower_max_height)
+                if self._lower_size_policy is not None:
+                    self.stackedWidget_lower.setSizePolicy(self._lower_size_policy)
+            if self.dockWidget_3d is not None:
+                self.dockWidget_3d.setMinimumWidth(self._dock3d_min_width)
+                self.dockWidget_3d.setMaximumWidth(self._dock3d_max_width)
+                if self._dock3d_size_policy is not None:
+                    self.dockWidget_3d.setSizePolicy(self._dock3d_size_policy)
 
     def _apply_2d_visibility(self, page_key):
         viewers = {
