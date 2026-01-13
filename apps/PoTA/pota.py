@@ -353,9 +353,11 @@ class GeometryPlot(QWidget):
         self.lines = []
 
     def update_plot(self):
+        if self.canvas.width() == 0 or self.canvas.height() == 0:
+            return
         self.ax.relim()
         self.ax.autoscale_view(True, True, True)
-        self.canvas.draw()
+        self.canvas.draw_idle()
 
 
 class LayoutPlot(QWidget):
