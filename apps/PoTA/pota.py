@@ -698,8 +698,14 @@ class PotaSetupDialog(QDialog):
         #     "vaporPressure": 101325.0
         #   }
         # }
-        file_path, _ = QFileDialog.getOpenFileName(parent=self, caption="Select JSON File", directory="./",
-                                                   filter="JSON Files (*.json)")
+        example_json_path = resource_path("resource/PoTA-Setup-example.json")
+        example_json_dir = os.path.dirname(example_json_path)
+        file_path, _ = QFileDialog.getOpenFileName(
+            parent=self,
+            caption="Select JSON File",
+            directory=example_json_dir,
+            filter="JSON Files (*.json)",
+        )
         if not file_path:
             return
 
