@@ -1,0 +1,15 @@
+{
+  "shaft_radius_m": 0.01,
+  "hub_inlet_radius_m": 0.015,
+  "tip_inlet_radius_m": 0.03,
+  "hub_outlet_radius_m": 0.012,
+  "tip_outlet_radius_m": 0.028,
+  "blade_count": 3,
+  "axial_length_m": 0.05,
+  "beta_inlet_rad": 0.0,
+  "beta_outlet_rad": 0.0,
+  "thickness_profile": {},
+  "n_spanwise": 11,
+  "n_points": 51,
+  "extras": {}
+}
