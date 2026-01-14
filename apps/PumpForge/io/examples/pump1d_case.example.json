@@ -1,27 +1,20 @@
 {
-  "meta": {
-    "app": "PumpForge",
-    "case_id": "demo_case_001",
-    "units": "SI"
-  },
-  "operating_point": {
-    "Q_m3_s": 0.02,
-    "H_m": 120.0,
-    "n_rpm": 20000.0
-  },
-  "fluid": {
-    "name": "Water",
-    "rho_kg_m3": 998.2,
-    "mu_Pa_s": 0.001,
-    "p_vapor_Pa": 2339.0
-  },
-  "inlet": {
-    "p_in_Pa": 101325.0,
-    "T_K": 293.15
-  },
-  "geometry": {
-    "inlet_diameter_m": 0.05,
-    "outlet_diameter_m": 0.12,
-    "shaft_radius_m": null
+  "case": {
+    "rpm": 20000,
+    "mass_flow_kg_s": 5.0,
+    "pressure_required_Pa": 2500000.0,
+    "inlet_pressure_Pa": 120000.0,
+    "alpha_inlet_deg": 90,
+    "inlet_radius_m": 0.02,
+    "outlet_radius_m": 0.03,
+    "shaft_radius_m": null,
+    "double_suction": false,
+    "second_stage": false,
+    "fluid": {
+      "density_kg_m3": 998.2,
+      "kinematic_viscosity_m2_s": 1.0e-6,
+      "vapor_pressure_Pa": 2339.0
+    },
+    "secondary_flows": null
   }
 }

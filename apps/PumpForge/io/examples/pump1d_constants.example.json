@@ -1,24 +1,19 @@
 {
-  "pump1d_constants": {
-    "gravity_m_s2": 9.805,
-    "design": {
-      "efficiency_guess": 0.7,
-      "slip_factor_model": "default",
-      "hydraulic_loss_model": "default"
-    },
-    "npsh": {
-      "npsh_margin": 1.2
-    },
+  "constants": {
+    "gravity": 9.80665,
+    "mechanical_efficiency": 0.90,
+    "station_pressure_drop_Pa": 100000,
+    "default_secondary_flow_ratio": 0.025,
     "solver": {
-      "max_iter": 100,
-      "tol": 1e-6
+      "max_iter_impeller_opt": 100,
+      "max_iter_match_inducer": 100,
+      "tol_head_m": 10.0,
+      "step_up": 1.01,
+      "step_down": 0.99
     },
-    "configuration": {
-      "double_suction": false,
-      "second_stage": false
-    },
-    "inlet": {
-      "alpha_deg": 90.0
+    "correlations": {
+      "blockage_coeff": 1.6,
+      "design_incidence_coeff": 0.3
     }
   }
 }
