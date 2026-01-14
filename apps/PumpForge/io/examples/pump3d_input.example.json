@@ -1,7 +1,7 @@
 {
   "__include__": [
-    "apps/PumpForge/io/examples/inducer3d_case.example.json",
-    "apps/PumpForge/io/examples/inducer3d_constants.example.json"
+    "inducer3d_case.example.json",
+    "inducer3d_constants.example.json"
   ],
   "meta": {
     "app": "PumpForge",

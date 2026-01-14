@@ -7,15 +7,15 @@ case-specific data separate from fixed constants.
 ## JSON include/merge support
 
 You can compose inputs with `__include__` in any JSON file. Includes are resolved in order, deep-merged, and then
-overridden by keys in the including file.
+overridden by keys in the including file. Include paths are resolved relative to the file that contains them.
 
 Example:
 
 ```json
 {
   "__include__": [
-    "apps/PumpForge/io/examples/pump1d_case.example.json",
-    "apps/PumpForge/io/examples/pump1d_constants.example.json"
+    "pump1d_case.example.json",
+    "pump1d_constants.example.json"
   ]
 }
 ```
