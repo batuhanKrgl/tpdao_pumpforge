@@ -8,10 +8,9 @@ from PyQt5.QtWidgets import QDialog
 from apps.PumpForge3D.models.inducer3d_models import Inducer3DInputs, Inducer3DState
 
 
-class PumpForge3DMainWindow(QDialog):
+class PumpForge3DMainWindow:
     def __init__(self) -> None:
-        super().__init__()
-        loadUi(self._ui_path(), self)
+        self._dialog: QDialog = loadUi(self._ui_path())
         self.state = self._init_state_defaults()
 
     @staticmethod
@@ -24,3 +23,9 @@ class PumpForge3DMainWindow(QDialog):
 
     def _placeholder_future_methods(self) -> None:
         return None
+
+    def show(self) -> None:
+        self._dialog.show()
+
+    def close(self) -> None:
+        self._dialog.close()
