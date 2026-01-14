@@ -1,0 +1,22 @@
+{
+  "inducer3d_inputs": {
+    "enabled": true,
+    "geometry": {
+      "hub_inlet_radius_m": 0.01,
+      "tip_inlet_radius_m": 0.025,
+      "hub_outlet_radius_m": 0.012,
+      "tip_outlet_radius_m": 0.028,
+      "width_m": 0.02,
+      "l_over_t": 2.0
+    },
+    "inlet_flow": {
+      "Q_m3_s": 0.02,
+      "rho_kg_m3": 998.2,
+      "omega_rad_s": 2094.395
+    },
+    "angles_deg": {
+      "beta1": 15.0,
+      "beta2": 25.0
+    }
+  }
+}

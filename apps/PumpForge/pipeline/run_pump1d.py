@@ -6,12 +6,9 @@ from typing import Any, Dict
 import numpy as np
 
 from apps.PumpForge.io.json_codec import load_json, save_json, to_jsonable
-from apps.PumpForge.io.schemas import PUMP1D_OUTPUT_KEYS, timestamp_utc
+from apps.PumpForge.io.schemas import PUMP1D_DEFAULTS, PUMP1D_OUTPUT_KEYS, timestamp_utc
 from src.Pump.pump1D import Pump
 from src.fluid import Fluid
-
-
-gravity = 9.805
 
 
 def _build_pump_dict(payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -19,6 +16,7 @@ def _build_pump_dict(payload: Dict[str, Any]) -> Dict[str, Any]:
     fluid_info = payload.get("fluid", {})
     inlet = payload.get("inlet", {})
     geometry = payload.get("geometry", {})
+    constants = payload.get("pump1d_constants", {})
 
     rho = fluid_info.get("rho_kg_m3")
     if rho is None:
@@ -38,19 +36,27 @@ def _build_pump_dict(payload: Dict[str, Any]) -> Dict[str, Any]:
     if inlet_diameter is None or outlet_diameter is None:
         raise ValueError("geometry.inlet_diameter_m and geometry.outlet_diameter_m are required")
 
+    gravity = constants.get("gravity_m_s2", PUMP1D_DEFAULTS["gravity_m_s2"])
     pressure_required = inlet_pressure + rho * gravity * h_m
     mass_flow = q_m3_s * rho
+
+    configuration_defaults = constants.get("configuration", PUMP1D_DEFAULTS["configuration"])
+    inlet_defaults = constants.get("inlet", PUMP1D_DEFAULTS["inlet"])
+
+    inlet_alpha = inlet.get("alpha_deg", inlet_defaults.get("alpha_deg"))
+    if inlet_alpha is None:
+        raise ValueError("inlet.alpha_deg or pump1d_constants.inlet.alpha_deg is required")
 
     return {
         "mass_flow": mass_flow,
         "pressure_required": pressure_required,
         "inlet_pressure": inlet_pressure,
-        "alpha": inlet.get("alpha_deg", 90.0),
-        "double_suction": geometry.get("double_suction", False),
-        "second_stage": geometry.get("second_stage", False),
+        "alpha": inlet_alpha,
+        "double_suction": geometry.get("double_suction", configuration_defaults.get("double_suction")),
+        "second_stage": geometry.get("second_stage", configuration_defaults.get("second_stage")),
         "inlet_radius": inlet_diameter / 2,
         "outlet_radius": outlet_diameter / 2,
-        "shaft_radius": geometry.get("shaft_radius_m"),
+        "shaft_radius": geometry.get("shaft_radius_m", constants.get("shaft_radius_m")),
     }
 
 
@@ -72,6 +78,7 @@ def _build_output(payload: Dict[str, Any], pump: Pump) -> Dict[str, Any]:
     meta = payload.get("meta", {})
     operating_point = payload.get("operating_point", {})
     fluid_info = payload.get("fluid", {})
+    constants = payload.get("pump1d_constants", {})
 
     impeller = pump.impeller
     inlet_beta_hub = float(np.rad2deg(impeller.hub.inlet.beta))
@@ -134,6 +141,10 @@ def _build_output(payload: Dict[str, Any], pump: Pump) -> Dict[str, Any]:
             "outlet": {"beta_hub_deg": outlet_beta_hub, "beta_tip_deg": outlet_beta_tip},
         },
         "export_for_3d": export_for_3d,
+        "constants_used": {
+            "gravity_m_s2": constants.get("gravity_m_s2", PUMP1D_DEFAULTS["gravity_m_s2"]),
+            "defaults": constants,
+        },
         "validation": to_jsonable(PUMP1D_OUTPUT_KEYS),
         "fluid": {
             "name": fluid_info.get("name", ""),

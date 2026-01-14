@@ -1,4 +1,28 @@
 {
+  "constants_used": {
+    "defaults": {
+      "configuration": {
+        "double_suction": false,
+        "second_stage": false
+      },
+      "design": {
+        "efficiency_guess": 0.7,
+        "hydraulic_loss_model": "default",
+        "slip_factor_model": "default"
+      },
+      "inlet": {
+        "alpha_deg": 90.0
+      },
+      "npsh": {
+        "npsh_margin": 1.2
+      },
+      "solver": {
+        "max_iter": 100,
+        "tol": 1e-06
+      }
+    },
+    "gravity_m_s2": 9.805
+  },
   "export_for_3d": {
     "H_m": 120.0,
     "Q_m3_s": 0.02,
@@ -51,6 +75,10 @@
     "tip_radius_out_m": 0.06
   },
   "validation": {
+    "constants_used": {
+      "defaults": {},
+      "gravity_m_s2": null
+    },
     "export_for_3d": {
       "H_m": null,
       "Q_m3_s": null,

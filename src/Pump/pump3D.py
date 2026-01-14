@@ -12,16 +12,20 @@ gravity = 9.805
 
 
 class Curve(np.ndarray):
-    def __new__(cls, array=None, number_of_points=nop, *args, **kwargs):
+    def __new__(cls, array=None, number_of_points=None, *args, **kwargs):
+        if number_of_points is None:
+            number_of_points = nop
         if array is None:
-            array = np.zeros((nop, 3))
+            array = np.zeros((number_of_points, 3))
         obj = np.asarray(array).view(cls)
         obj.bezier = None
         return obj
 
-    def __init__(self, array=None, number_of_points=nop):
+    def __init__(self, array=None, number_of_points=None):
+        if number_of_points is None:
+            number_of_points = nop
         if array is None:
-            array = np.zeros((nop, 3))
+            array = np.zeros((number_of_points, 3))
         self.bezier = None
 
     def __array_finalize__(self, obj):
@@ -121,7 +125,7 @@ class CurveSet:
 
 
 class Rotor3D:
-    def __init__(self):
+    def __init__(self, number_of_guides: int = 10):
         self.type = None
         self.hub = Curve()
         self.tip = Curve()
@@ -135,7 +139,7 @@ class Rotor3D:
         self.hub_offsets = []
         self.tip_offsets = []
         self.guides_dict = {
-            "number_of_guides": 10,
+            "number_of_guides": number_of_guides,
             "guides": [],
             "blade_guides": []
         }
@@ -198,6 +202,18 @@ class Rotor3D:
     @property
     def outlet_width(self):
         return self.hub.z[-1] - self.tip.z[-1]
+
+    def configure_guides(self, number_of_guides: int) -> None:
+        self.guides_dict["number_of_guides"] = number_of_guides
+        self.guides_dict["guides"] = []
+        self.guides_dict["blade_guides"] = []
+        self.beta_dict["array"] = np.zeros((number_of_guides + 2, nop - 1))
+        self.beta_dict["inlet_betas"]["array"] = np.zeros(number_of_guides + 2)
+        self.beta_dict["outlet_betas"]["array"] = np.zeros(number_of_guides + 2)
+        self.foil_dict["suction"]["thickness_array"] = np.zeros((number_of_guides + 2, nop))
+        self.foil_dict["pressure"]["thickness_array"] = np.zeros((number_of_guides + 2, nop))
+        self.foil_dict["suction"]["curves"] = []
+        self.foil_dict["pressure"]["curves"] = []
 
     @property
     def width(self):
@@ -520,8 +536,8 @@ class Impeller3D(Rotor3D):
 
 
 class Inducer3D(Rotor3D):
-    def __init__(self, inducer1D: Inducer):
-        super().__init__()
+    def __init__(self, inducer1D: Inducer, number_of_guides: int = 10):
+        super().__init__(number_of_guides=number_of_guides)
         self.type = "inducer"
         self.meridional_dict["hub_inlet_radius"] = inducer1D.hub.inlet.radius
         self.meridional_dict["tip_inlet_radius"] = inducer1D.tip.inlet.radius
