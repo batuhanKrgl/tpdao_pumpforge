@@ -1,0 +1,47 @@
+{
+  "meta": {
+    "app": "PumpForge",
+    "case_id": "demo_case_001",
+    "units": "SI"
+  },
+  "from_pump1d": {
+    "omega_rad_s": 2094.395,
+    "Q_m3_s": 0.02,
+    "H_m": 120.0,
+    "rho_kg_m3": 998.2,
+    "shaft_radius_m": 0.01,
+    "inducer_head_req_m": 1.2,
+    "recommended": {
+      "D_in_m": 0.05,
+      "D_out_m": 0.12
+    },
+    "angles_deg": {
+      "beta1": 15.0,
+      "beta2": 25.0
+    }
+  },
+  "inducer": {
+    "enabled": true,
+    "n_blades": 3,
+    "n_points_streamwise": 100,
+    "n_sections_spanwise": 7,
+    "hub_radius_m": 0.01,
+    "tip_radius_m": 0.025,
+    "leading_edge_sweep_deg": 0.0,
+    "notes": "Align with inducer3D signature in src."
+  },
+  "impeller": {
+    "enabled": true,
+    "mode": "mock",
+    "mock_outputs": {
+      "status": "not_implemented_yet"
+    }
+  },
+  "volute": {
+    "enabled": true,
+    "mode": "mock",
+    "mock_outputs": {
+      "status": "not_implemented_yet"
+    }
+  }
+}
