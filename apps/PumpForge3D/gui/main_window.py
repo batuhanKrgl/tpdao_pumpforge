@@ -3,12 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from PyQt5.uic import loadUi
-from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtWidgets import QDialog
 
 from apps.PumpForge3D.models.inducer3d_models import Inducer3DInputs, Inducer3DState
 
 
-class PumpForge3DMainWindow(QMainWindow):
+class PumpForge3DMainWindow(QDialog):
     def __init__(self) -> None:
         super().__init__()
         loadUi(self._ui_path(), self)
