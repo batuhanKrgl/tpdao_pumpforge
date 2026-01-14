@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "app": "PumpForge",
+    "case_id": "demo_case_001",
+    "stage": "pump3d",
+    "component": "inducer",
+    "units": "SI",
+    "timestamp": "2024-01-01T00:00:00+00:00"
+  },
+  "constants_used": {
+    "inducer3d_constants": {
+      "blade": {
+        "leading_edge_ellipticity": 1.5,
+        "n_blades": 3,
+        "thickness_m": 0.0008,
+        "trailing_edge_ellipticity": 2.0
+      },
+      "defaults": {
+        "coordinate_system": "cylindrical",
+        "output_curves": true
+      },
+      "geometry": {
+        "l_over_t": 2.0
+      },
+      "numerics": {
+        "n_sections_spanwise": 7
+      }
+    },
+    "discretization": {
+      "n_points_streamwise": 100,
+      "n_sections_spanwise": 7
+    }
+  },
+  "curves": {
+    "inducer": {
+      "hub_curve": [[0.01, 0.0, 0.0], [0.012, 0.0, 0.02], [0.014, 0.0, 0.04]],
+      "tip_curve": [[0.025, 0.0, 0.0], [0.028, 0.0, 0.02], [0.03, 0.0, 0.04]],
+      "leading_edge": [[0.012, 0.0, 0.0], [0.015, 0.0, 0.002], [0.018, 0.0, 0.004]],
+      "trailing_edge": [[0.014, 0.0, 0.04], [0.016, 0.0, 0.042], [0.018, 0.0, 0.044]],
+      "blade_curves": {
+        "pressure": {
+          "hub": [[0.01, 0.0, 0.0], [0.012, 0.001, 0.02], [0.014, 0.002, 0.04]],
+          "tip": [[0.025, 0.0, 0.0], [0.028, 0.002, 0.02], [0.03, 0.004, 0.04]],
+          "guides": [
+            [[0.017, 0.0, 0.0], [0.019, 0.001, 0.02], [0.021, 0.002, 0.04]],
+            [[0.021, 0.0, 0.0], [0.023, 0.001, 0.02], [0.025, 0.002, 0.04]]
+          ]
+        },
+        "suction": {
+          "hub": [[0.01, 0.0, 0.0], [0.012, -0.001, 0.02], [0.014, -0.002, 0.04]],
+          "tip": [[0.025, 0.0, 0.0], [0.028, -0.002, 0.02], [0.03, -0.004, 0.04]],
+          "guides": [
+            [[0.017, 0.0, 0.0], [0.019, -0.001, 0.02], [0.021, -0.002, 0.04]]
+          ]
+        }
+      }
+    },
+    "impeller": {
+      "mock": true,
+      "status": "not_implemented_yet"
+    },
+    "volute": {
+      "mock": true,
+      "status": "not_implemented_yet"
+    }
+  }
+}

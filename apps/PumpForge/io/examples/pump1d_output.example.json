@@ -1,0 +1,147 @@
+{
+  "constants_used": {
+    "defaults": {
+      "configuration": {
+        "double_suction": false,
+        "second_stage": false
+      },
+      "design": {
+        "efficiency_guess": 0.7,
+        "hydraulic_loss_model": "default",
+        "slip_factor_model": "default"
+      },
+      "inlet": {
+        "alpha_deg": 90.0
+      },
+      "npsh": {
+        "npsh_margin": 1.2
+      },
+      "solver": {
+        "max_iter": 100,
+        "tol": 1e-06
+      }
+    },
+    "gravity_m_s2": 9.805
+  },
+  "export_for_3d": {
+    "H_m": 120.0,
+    "Q_m3_s": 0.02,
+    "angles_deg": {
+      "beta1": 15.0,
+      "beta2": 25.0
+    },
+    "inducer_head_req_m": 1.2,
+    "omega_rad_s": 2094.395,
+    "recommended": {
+      "D_in_m": 0.05,
+      "D_out_m": 0.12
+    },
+    "rho_kg_m3": 998.2,
+    "shaft_radius_m": 0.01
+  },
+  "fluid": {
+    "mu_Pa_s": 0.001,
+    "name": "Water",
+    "p_vapor_Pa": 2339.0,
+    "rho_kg_m3": 998.2
+  },
+  "meta": {
+    "app": "PumpForge",
+    "case_id": "demo_case_001",
+    "stage": "pump1d",
+    "timestamp": "2024-01-01T00:00:00+00:00",
+    "units": "SI"
+  },
+  "operating_point": {
+    "H_m": 120.0,
+    "Q_m3_s": 0.02,
+    "n_rpm": 20000.0
+  },
+  "performance": {
+    "eta_hydraulic": 0.8,
+    "eta_total": 0.72,
+    "npsh_required_m": 1.2,
+    "power_W": 32624.0,
+    "torque_Nm": 15.5768
+  },
+  "sizing": {
+    "D_in_m": 0.05,
+    "D_out_m": 0.12,
+    "b_in_m": 0.02,
+    "b_out_m": 0.01,
+    "hub_radius_in_m": 0.012,
+    "hub_radius_out_m": 0.02,
+    "tip_radius_in_m": 0.025,
+    "tip_radius_out_m": 0.06
+  },
+  "validation": {
+    "constants_used": {
+      "defaults": {},
+      "gravity_m_s2": null
+    },
+    "export_for_3d": {
+      "H_m": null,
+      "Q_m3_s": null,
+      "angles_deg": {
+        "beta1": null,
+        "beta2": null
+      },
+      "inducer_head_req_m": null,
+      "omega_rad_s": null,
+      "recommended": {
+        "D_in_m": null,
+        "D_out_m": null
+      },
+      "rho_kg_m3": null,
+      "shaft_radius_m": null
+    },
+    "meta": {
+      "app": "",
+      "case_id": "",
+      "stage": "pump1d",
+      "timestamp": "",
+      "units": "SI"
+    },
+    "operating_point": {
+      "H_m": null,
+      "Q_m3_s": null,
+      "n_rpm": null
+    },
+    "performance": {
+      "eta_hydraulic": null,
+      "eta_total": null,
+      "power_W": null,
+      "torque_Nm": null
+    },
+    "sizing": {
+      "D_in_m": null,
+      "D_out_m": null,
+      "b_in_m": null,
+      "b_out_m": null,
+      "hub_radius_in_m": null,
+      "hub_radius_out_m": null,
+      "tip_radius_in_m": null,
+      "tip_radius_out_m": null
+    },
+    "velocity_triangles": {
+      "inlet": {
+        "beta_hub_deg": null,
+        "beta_tip_deg": null
+      },
+      "outlet": {
+        "beta_hub_deg": null,
+        "beta_tip_deg": null
+      }
+    }
+  },
+  "velocity_triangles": {
+    "inlet": {
+      "beta_hub_deg": 14.0,
+      "beta_tip_deg": 16.0
+    },
+    "outlet": {
+      "beta_hub_deg": 23.0,
+      "beta_tip_deg": 27.0
+    }
+  }
+}

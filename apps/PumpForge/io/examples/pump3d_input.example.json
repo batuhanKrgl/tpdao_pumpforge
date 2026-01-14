@@ -1,0 +1,25 @@
+{
+  "__include__": [
+    "inducer3d_case.example.json",
+    "inducer3d_constants.example.json"
+  ],
+  "meta": {
+    "app": "PumpForge",
+    "case_id": "demo_case_001",
+    "units": "SI"
+  },
+  "impeller": {
+    "enabled": true,
+    "mode": "mock",
+    "mock_outputs": {
+      "status": "not_implemented_yet"
+    }
+  },
+  "volute": {
+    "enabled": true,
+    "mode": "mock",
+    "mock_outputs": {
+      "status": "not_implemented_yet"
+    }
+  }
+}
