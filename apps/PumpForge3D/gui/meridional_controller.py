@@ -53,11 +53,15 @@ class MeridionalController(QObject):
             "sb_tip_handle_in": self._get_spinbox(QDoubleSpinBox, "sb_tip_handle_in"),
             "sb_tip_handle_out": self._get_spinbox(QDoubleSpinBox, "sb_tip_handle_out"),
             "sb_hub_p2_z_norm": self._get_spinbox(QDoubleSpinBox, "sb_hub_p2_z_norm"),
-            "sb_hub_p2_r_offset": self._get_spinbox(QDoubleSpinBox, "sb_hub_p2_r_offset"),
+            "sb_hub_p2_r_norm": self._get_spinbox(QDoubleSpinBox, "sb_hub_p2_r_norm"),
             "sb_tip_p2_z_norm": self._get_spinbox(QDoubleSpinBox, "sb_tip_p2_z_norm"),
-            "sb_tip_p2_r_offset": self._get_spinbox(QDoubleSpinBox, "sb_tip_p2_r_offset"),
+            "sb_tip_p2_r_norm": self._get_spinbox(QDoubleSpinBox, "sb_tip_p2_r_norm"),
             "sb_le_ctrl_z_offset": self._get_spinbox(QDoubleSpinBox, "sb_le_ctrl_z_offset"),
             "sb_te_ctrl_z_offset": self._get_spinbox(QDoubleSpinBox, "sb_te_ctrl_z_offset"),
+            "sb_le_hub_t_norm": self._get_spinbox(QDoubleSpinBox, "sb_le_hub_t_norm"),
+            "sb_le_tip_t_norm": self._get_spinbox(QDoubleSpinBox, "sb_le_tip_t_norm"),
+            "sb_te_hub_t_norm": self._get_spinbox(QDoubleSpinBox, "sb_te_hub_t_norm"),
+            "sb_te_tip_t_norm": self._get_spinbox(QDoubleSpinBox, "sb_te_tip_t_norm"),
             "sb_n_curve_points": self._get_spinbox(QSpinBox, "sb_n_curve_points"),
         }
 
@@ -69,11 +73,11 @@ class MeridionalController(QObject):
 
     def apply_defaults(self, params: MeridionalBezierParams | None = None) -> None:
         params = params or default_params()
-        self._spinboxes["sb_Lz"].setValue(params.Lz_m)
-        self._spinboxes["sb_hub_r_in"].setValue(params.hub_r_in_m)
-        self._spinboxes["sb_hub_r_out"].setValue(params.hub_r_out_m)
-        self._spinboxes["sb_b_in"].setValue(params.b_in_m)
-        self._spinboxes["sb_b_out"].setValue(params.b_out_m)
+        self._spinboxes["sb_Lz"].setValue(self._m_to_mm(params.Lz_m))
+        self._spinboxes["sb_hub_r_in"].setValue(self._m_to_mm(params.hub_r_in_m))
+        self._spinboxes["sb_hub_r_out"].setValue(self._m_to_mm(params.hub_r_out_m))
+        self._spinboxes["sb_b_in"].setValue(self._m_to_mm(params.b_in_m))
+        self._spinboxes["sb_b_out"].setValue(self._m_to_mm(params.b_out_m))
         self._spinboxes["sb_hub_theta_in"].setValue(params.hub_theta_in_deg)
         self._spinboxes["sb_hub_theta_out"].setValue(params.hub_theta_out_deg)
         self._spinboxes["sb_tip_theta_in"].setValue(params.tip_theta_in_deg)
@@ -83,11 +87,15 @@ class MeridionalController(QObject):
         self._spinboxes["sb_tip_handle_in"].setValue(params.tip_handle_in)
         self._spinboxes["sb_tip_handle_out"].setValue(params.tip_handle_out)
         self._spinboxes["sb_hub_p2_z_norm"].setValue(params.hub_p2_z_norm)
-        self._spinboxes["sb_hub_p2_r_offset"].setValue(params.hub_p2_r_offset)
+        self._spinboxes["sb_hub_p2_r_norm"].setValue(params.hub_p2_r_norm)
         self._spinboxes["sb_tip_p2_z_norm"].setValue(params.tip_p2_z_norm)
-        self._spinboxes["sb_tip_p2_r_offset"].setValue(params.tip_p2_r_offset)
-        self._spinboxes["sb_le_ctrl_z_offset"].setValue(params.le_ctrl_z_offset_m)
-        self._spinboxes["sb_te_ctrl_z_offset"].setValue(params.te_ctrl_z_offset_m)
+        self._spinboxes["sb_tip_p2_r_norm"].setValue(params.tip_p2_r_norm)
+        self._spinboxes["sb_le_ctrl_z_offset"].setValue(self._m_to_mm(params.le_ctrl_z_offset_m))
+        self._spinboxes["sb_te_ctrl_z_offset"].setValue(self._m_to_mm(params.te_ctrl_z_offset_m))
+        self._spinboxes["sb_le_hub_t_norm"].setValue(params.le_hub_t_norm)
+        self._spinboxes["sb_le_tip_t_norm"].setValue(params.le_tip_t_norm)
+        self._spinboxes["sb_te_hub_t_norm"].setValue(params.te_hub_t_norm)
+        self._spinboxes["sb_te_tip_t_norm"].setValue(params.te_tip_t_norm)
         self._spinboxes["sb_n_curve_points"].setValue(params.n_curve_points)
 
     def connect_signals(self) -> None:
@@ -96,11 +104,11 @@ class MeridionalController(QObject):
 
     def _read_params(self) -> MeridionalBezierParams:
         return MeridionalBezierParams(
-            Lz_m=self._spinboxes["sb_Lz"].value(),
-            hub_r_in_m=self._spinboxes["sb_hub_r_in"].value(),
-            hub_r_out_m=self._spinboxes["sb_hub_r_out"].value(),
-            b_in_m=self._spinboxes["sb_b_in"].value(),
-            b_out_m=self._spinboxes["sb_b_out"].value(),
+            Lz_m=self._mm_to_m(self._spinboxes["sb_Lz"].value()),
+            hub_r_in_m=self._mm_to_m(self._spinboxes["sb_hub_r_in"].value()),
+            hub_r_out_m=self._mm_to_m(self._spinboxes["sb_hub_r_out"].value()),
+            b_in_m=self._mm_to_m(self._spinboxes["sb_b_in"].value()),
+            b_out_m=self._mm_to_m(self._spinboxes["sb_b_out"].value()),
             hub_theta_in_deg=self._spinboxes["sb_hub_theta_in"].value(),
             hub_theta_out_deg=self._spinboxes["sb_hub_theta_out"].value(),
             tip_theta_in_deg=self._spinboxes["sb_tip_theta_in"].value(),
@@ -110,11 +118,19 @@ class MeridionalController(QObject):
             tip_handle_in=self._spinboxes["sb_tip_handle_in"].value(),
             tip_handle_out=self._spinboxes["sb_tip_handle_out"].value(),
             hub_p2_z_norm=self._spinboxes["sb_hub_p2_z_norm"].value(),
-            hub_p2_r_offset=self._spinboxes["sb_hub_p2_r_offset"].value(),
+            hub_p2_r_norm=self._spinboxes["sb_hub_p2_r_norm"].value(),
             tip_p2_z_norm=self._spinboxes["sb_tip_p2_z_norm"].value(),
-            tip_p2_r_offset=self._spinboxes["sb_tip_p2_r_offset"].value(),
-            le_ctrl_z_offset_m=self._spinboxes["sb_le_ctrl_z_offset"].value(),
-            te_ctrl_z_offset_m=self._spinboxes["sb_te_ctrl_z_offset"].value(),
+            tip_p2_r_norm=self._spinboxes["sb_tip_p2_r_norm"].value(),
+            le_ctrl_z_offset_m=self._mm_to_m(
+                self._spinboxes["sb_le_ctrl_z_offset"].value()
+            ),
+            te_ctrl_z_offset_m=self._mm_to_m(
+                self._spinboxes["sb_te_ctrl_z_offset"].value()
+            ),
+            le_hub_t_norm=self._spinboxes["sb_le_hub_t_norm"].value(),
+            le_tip_t_norm=self._spinboxes["sb_le_tip_t_norm"].value(),
+            te_hub_t_norm=self._spinboxes["sb_te_hub_t_norm"].value(),
+            te_tip_t_norm=self._spinboxes["sb_te_tip_t_norm"].value(),
             n_curve_points=self._spinboxes["sb_n_curve_points"].value(),
         )
 
@@ -136,6 +152,14 @@ class MeridionalController(QObject):
             section=section,
             section_serialized=serialize_section(section),
         )
+
+    @staticmethod
+    def _mm_to_m(value_mm: float) -> float:
+        return value_mm / 1000.0
+
+    @staticmethod
+    def _m_to_mm(value_m: float) -> float:
+        return value_m * 1000.0
 
     @property
     def state(self) -> MeridionalSectionState | None:
